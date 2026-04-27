@@ -1,17 +1,57 @@
-import { Save, X } from "lucide-react";
-import { Link } from "react-router";
-import { useState } from "react";
+import { Save, X, Plus, Trash2 } from "lucide-react";
+import { Link, useParams } from "react-router";
+import { useState, useEffect } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
+import { api } from "../api/client";
 
 export function DigitalITR() {
+  const { patientId } = useParams();
+  const [patient, setPatient] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPatient = async () => {
+      try {
+        const data = await api.get('/provider/directory');
+        const found = data.find((p: any) => String(p.patient_id) === String(patientId));
+        setPatient(found || data[0]); // fallback
+      } catch (error) {
+        console.error("Failed to fetch patient", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatient();
+  }, [patientId]);
   const [bloodPressure, setBloodPressure] = useState("");
   const [heartRate, setHeartRate] = useState("");
   const [temperature, setTemperature] = useState("");
   const [weight, setWeight] = useState("");
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
-  const [treatmentPlan, setTreatmentPlan] = useState("");
   const [notes, setNotes] = useState("");
+
+  const [prescriptions, setPrescriptions] = useState([
+    { medicationName: "", dosage: "", frequency: "OD", durationDays: "" },
+  ]);
+
+  const addPrescription = () => {
+    setPrescriptions([
+      ...prescriptions,
+      { medicationName: "", dosage: "", frequency: "OD", durationDays: "" },
+    ]);
+  };
+
+  const updatePrescription = (index: number, field: string, value: string) => {
+    const updated = [...prescriptions];
+    updated[index] = { ...updated[index], [field]: value };
+    setPrescriptions(updated);
+  };
+
+  const removePrescription = (index: number) => {
+    const updated = prescriptions.filter((_, i) => i !== index);
+    setPrescriptions(updated);
+  };
 
   const today = new Date().toLocaleDateString("en-US", {
     month: "short",
@@ -30,34 +70,44 @@ export function DigitalITR() {
 
         {/* Card 1: Read-Only Patient Summary */}
         <div className="bg-gradient-to-r from-blue-100 to-blue-50 border-l-4 border-blue-600 rounded-lg p-6 mb-6">
-          <div className="flex flex-wrap items-center gap-6">
-            <div>
-              <p className="text-xs text-blue-700 mb-1">Patient ID</p>
-              <p className="font-bold text-gray-900">NCH-2026-001234</p>
+          {loading ? (
+            <p className="text-gray-500">Loading patient data...</p>
+          ) : !patient ? (
+            <p className="text-red-500">Patient not found</p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-6">
+              <div>
+                <p className="text-xs text-blue-700 mb-1">Patient ID</p>
+                <p className="font-bold text-gray-900">{patient.patient_id}</p>
+              </div>
+              <div className="h-8 w-px bg-blue-300"></div>
+              <div>
+                <p className="text-xs text-blue-700 mb-1">Name</p>
+                <p className="font-bold text-gray-900">{patient.first_name} {patient.last_name}</p>
+              </div>
+              <div className="h-8 w-px bg-blue-300"></div>
+              <div>
+                <p className="text-xs text-blue-700 mb-1">Contact</p>
+                <p className="font-bold text-gray-900">{patient.contact_number || 'N/A'}</p>
+              </div>
+              <div className="h-8 w-px bg-blue-300"></div>
+              <div>
+                <p className="text-xs text-blue-700 mb-1">Blood Type</p>
+                <p className="font-bold text-red-600">{patient.blood_type || 'N/A'}</p>
+              </div>
+              <div className="h-8 w-px bg-blue-300"></div>
+              <div>
+                <p className="text-xs text-blue-700 mb-1">Allergies</p>
+                {patient.allergies ? (
+                  <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                    {patient.allergies}
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-500 font-bold">None</span>
+                )}
+              </div>
             </div>
-            <div className="h-8 w-px bg-blue-300"></div>
-            <div>
-              <p className="text-xs text-blue-700 mb-1">Name</p>
-              <p className="font-bold text-gray-900">Maria Santos</p>
-            </div>
-            <div className="h-8 w-px bg-blue-300"></div>
-            <div>
-              <p className="text-xs text-blue-700 mb-1">Age / Gender</p>
-              <p className="font-bold text-gray-900">40, Female</p>
-            </div>
-            <div className="h-8 w-px bg-blue-300"></div>
-            <div>
-              <p className="text-xs text-blue-700 mb-1">Blood Type</p>
-              <p className="font-bold text-red-600">O+</p>
-            </div>
-            <div className="h-8 w-px bg-blue-300"></div>
-            <div>
-              <p className="text-xs text-blue-700 mb-1">Allergies</p>
-              <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
-                Penicillin
-              </span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Card 2: Vitals & Assessment */}
@@ -153,14 +203,70 @@ export function DigitalITR() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Treatment Plan</label>
-              <textarea
-                value={treatmentPlan}
-                onChange={(e) => setTreatmentPlan(e.target.value)}
-                placeholder="List medications, dosages, and treatment instructions..."
-                rows={4}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none resize-none"
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-bold text-gray-700">Prescriptions</label>
+              </div>
+              <div className="space-y-4">
+                {prescriptions.map((prescription, index) => (
+                  <div key={index} className="flex flex-wrap items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="flex-1 min-w-[200px]">
+                      <input
+                        type="text"
+                        placeholder="Medication Name"
+                        value={prescription.medicationName}
+                        onChange={(e) => updatePrescription(index, "medicationName", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-600 focus:outline-none text-sm"
+                      />
+                    </div>
+                    <div className="w-32">
+                      <input
+                        type="text"
+                        placeholder="Dosage"
+                        value={prescription.dosage}
+                        onChange={(e) => updatePrescription(index, "dosage", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-600 focus:outline-none text-sm"
+                      />
+                    </div>
+                    <div className="w-32">
+                      <select
+                        value={prescription.frequency}
+                        onChange={(e) => updatePrescription(index, "frequency", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-600 focus:outline-none text-sm bg-white"
+                      >
+                        <option value="OD">OD (1x)</option>
+                        <option value="BID">BID (2x)</option>
+                        <option value="TID">TID (3x)</option>
+                        <option value="QID">QID (4x)</option>
+                      </select>
+                    </div>
+                    <div className="w-32">
+                      <input
+                        type="number"
+                        placeholder="Days"
+                        value={prescription.durationDays}
+                        onChange={(e) => updatePrescription(index, "durationDays", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-600 focus:outline-none text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removePrescription(index)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-md transition"
+                      title="Remove"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addPrescription}
+                className="mt-4 flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition text-sm font-semibold"
+              >
+                <Plus className="w-4 h-4" />
+                Add Another Medication
+              </button>
             </div>
 
             <div>

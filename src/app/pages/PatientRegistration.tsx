@@ -1,15 +1,41 @@
 import { Heart, UserPlus, AlertCircle, QrCode, Lock, ArrowLeft } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useState } from "react";
+import { api } from "../api/client";
 
 export function PatientRegistration() {
   const [step, setStep] = useState<"registration" | "unverified">("registration");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleCreateAccount = () => {
-    setStep("unverified");
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/auth/register/patient', {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        password
+      });
+      setStep("unverified");
+    } catch (err: any) {
+      setError(err.message || "Failed to register account.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (step === "unverified") {
@@ -148,8 +174,40 @@ export function PatientRegistration() {
             Create your shell account to begin the verification process
           </p>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded">
+              {error}
+            </div>
+          )}
+
           {/* Registration Form */}
-          <div className="space-y-4 mb-6">
+          <form onSubmit={handleCreateAccount} className="space-y-4 mb-6">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-bold text-gray-700 mb-2">First Name</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Juan"
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Last Name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Dela Cruz"
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
               <input
@@ -157,6 +215,7 @@ export function PatientRegistration() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
+                required
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
               />
             </div>
@@ -179,18 +238,20 @@ export function PatientRegistration() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter your password"
+                required
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
               />
             </div>
-          </div>
 
-          {/* Create Account Button */}
-          <button
-            onClick={handleCreateAccount}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition mb-4"
-          >
-            Create Shell Account
-          </button>
+            {/* Create Account Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition mb-4 disabled:opacity-50 mt-4"
+            >
+              {loading ? "Creating..." : "Create Shell Account"}
+            </button>
+          </form>
 
           {/* Info Alert */}
           <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-4">

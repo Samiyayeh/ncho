@@ -1,19 +1,26 @@
-import { UserPlus, Users, Activity, FileText, Clock, Shield, Calendar } from "lucide-react";
+import { UserPlus, Users, Activity, FileText, Clock, Shield, Calendar, Search } from "lucide-react";
 import { Link } from "react-router";
 import { ProviderLayout } from "../components/ProviderLayout";
+import { useEffect, useState } from "react";
+import { api } from "../api/client";
 
 export function ProviderDashboard() {
-  const activeQRSessions = [
-    { patient: "Maria Santos", tokenId: "QR-2026-7891", expiresIn: "42m" },
-    { patient: "Juan Dela Cruz", tokenId: "QR-2026-7892", expiresIn: "38m" },
-    { patient: "Ana Reyes", tokenId: "QR-2026-7893", expiresIn: "15m" },
-  ];
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const todaysAppointments = [
-    { id: "APT-2026-042", patient: "Carlos Mendoza", time: "09:00 AM", type: "Follow-up", status: "Waiting", color: "orange" },
-    { id: "APT-2026-043", patient: "Maria Santos", time: "10:30 AM", type: "New Consultation", status: "Confirmed", color: "blue" },
-    { id: "APT-2026-044", patient: "Elena Cruz", time: "01:00 PM", type: "Check-up", status: "Confirmed", color: "blue" },
-  ];
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const data = await api.get('/provider/directory');
+        setPatients(data);
+      } catch (error) {
+        console.error("Failed to fetch directory", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatients();
+  }, []);
 
   return (
     <ProviderLayout>
@@ -48,10 +55,10 @@ export function ProviderDashboard() {
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Users className="w-6 h-6 text-blue-600" />
               </div>
-              <p className="text-3xl font-bold text-gray-900">1,247</p>
+              <p className="text-3xl font-bold text-gray-900">{loading ? '...' : patients.length}</p>
             </div>
             <p className="text-gray-600">Total Patients Registered</p>
-            <p className="text-sm text-green-600 mt-2">+23 this week</p>
+            <p className="text-sm text-green-600 mt-2">Active in directory</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-md p-6">
@@ -59,10 +66,10 @@ export function ProviderDashboard() {
               <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
                 <Activity className="w-6 h-6 text-teal-500" />
               </div>
-              <p className="text-3xl font-bold text-gray-900">42</p>
+              <p className="text-3xl font-bold text-gray-900">Live</p>
             </div>
-            <p className="text-gray-600">Consultations Today</p>
-            <p className="text-sm text-gray-500 mt-2">As of {new Date().toLocaleTimeString()}</p>
+            <p className="text-gray-600">System Status</p>
+            <p className="text-sm text-gray-500 mt-2">Backend API Connected</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-md p-6">
@@ -100,85 +107,61 @@ export function ProviderDashboard() {
           </div>
         </div>
 
-        {/* Appointments & QR Sessions Row */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          
-          {/* Today's Appointments */}
-          <div className="bg-white rounded-xl shadow-md p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-6 h-6 text-teal-600" />
-                <h3 className="text-xl font-bold text-gray-900">Today's Bookings</h3>
-              </div>
-              <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-bold">
-                {todaysAppointments.length} Total
-              </span>
-            </div>
-
-            <div className="space-y-3 flex-1">
-              {todaysAppointments.map((apt, index) => (
-                <div key={index} className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 border-${apt.color}-500`}>
-                  <div>
-                    <p className="font-bold text-gray-900">{apt.patient}</p>
-                    <p className="text-sm text-gray-600">{apt.type}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-900">{apt.time}</p>
-                    <span className={`text-xs font-bold text-${apt.color}-600`}>{apt.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <Link to="/provider/schedule" className="w-full block text-center py-2 border-2 border-teal-600 text-teal-600 rounded-lg font-bold hover:bg-teal-50 transition">
-                View Full Schedule
-              </Link>
+        {/* Patient Directory Table */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900">Patient Directory</h3>
+            <div className="relative">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input 
+                type="text" 
+                placeholder="Search patients..." 
+                className="pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none"
+              />
             </div>
           </div>
 
-          {/* Active QR Sessions */}
-          <div className="bg-white rounded-xl shadow-md p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Shield className="w-6 h-6 text-blue-600" />
-                <h3 className="text-xl font-bold text-gray-900">Active QR Access</h3>
-              </div>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">
-                {activeQRSessions.length} Active
-              </span>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-4">
-              Temporary access tokens granted via QR code scan. All sessions automatically expire for DPA compliance.
-            </p>
-
-            <div className="space-y-3 flex-1">
-              {activeQRSessions.map((session, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 border-blue-600">
-                  <div>
-                    <p className="font-bold text-gray-900">{session.patient}</p>
-                    <p className="text-sm text-gray-600">Token ID: {session.tokenId}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center justify-end gap-1 mb-1">
-                      <Clock className="w-4 h-4 text-orange-600" />
-                      <span className="text-xs font-bold text-orange-600">
-                        {session.expiresIn}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <button className="w-full py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition">
-                View All Sessions
-              </button>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b-2 border-gray-100">
+                  <th className="pb-3 text-sm font-bold text-gray-500">Patient ID</th>
+                  <th className="pb-3 text-sm font-bold text-gray-500">Name</th>
+                  <th className="pb-3 text-sm font-bold text-gray-500">Email</th>
+                  <th className="pb-3 text-sm font-bold text-gray-500">Contact</th>
+                  <th className="pb-3 text-sm font-bold text-gray-500 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">Loading patients from database...</td>
+                  </tr>
+                ) : patients.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">No patients registered yet.</td>
+                  </tr>
+                ) : (
+                  patients.map((patient: any) => (
+                    <tr key={patient.patient_id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                      <td className="py-4 text-sm font-bold text-blue-600">{patient.patient_id}</td>
+                      <td className="py-4 font-medium text-gray-900">{patient.first_name} {patient.last_name}</td>
+                      <td className="py-4 text-sm text-gray-600">{patient.email}</td>
+                      <td className="py-4 text-sm text-gray-600">{patient.contact_number || '-'}</td>
+                      <td className="py-4 text-right">
+                        <Link 
+                          to={`/provider/clinical/${patient.patient_id}`}
+                          className="px-4 py-2 bg-teal-50 text-teal-700 font-bold rounded-lg hover:bg-teal-100 transition text-sm"
+                        >
+                          Open File
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-          
         </div>
       </div>
     </ProviderLayout>

@@ -1,4 +1,4 @@
-import { QrCode, FileText, ShieldCheck, User, Calendar } from "lucide-react";
+import { QrCode, FileText, ShieldCheck, User } from "lucide-react";
 import { Link, useLocation } from "react-router";
 
 export function PatientBottomNav() {
@@ -6,7 +6,6 @@ export function PatientBottomNav() {
 
   const navItems = [
     { path: "/patient", icon: QrCode, label: "Passport" },
-    { path: "/appointments", icon: Calendar, label: "Visits" },
     { path: "/medical-records", icon: FileText, label: "Records" },
     { path: "/privacy-logs", icon: ShieldCheck, label: "Privacy" },
     { path: "/patient/profile", icon: User, label: "Profile" },

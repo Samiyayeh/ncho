@@ -1,11 +1,30 @@
 import { Phone, MapPin, Calendar, Activity, FileText, Clock, CheckCircle, Shield } from "lucide-react";
 import { Link, useParams } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
+import { api } from "../api/client";
 
 export function ClinicalView() {
   const { patientId } = useParams();
   const [activeTab, setActiveTab] = useState("summary");
+  const [patient, setPatient] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPatient = async () => {
+      try {
+        // Fetch all patients and find the one matching patientId
+        const data = await api.get('/provider/directory');
+        const found = data.find((p: any) => String(p.patient_id) === String(patientId));
+        setPatient(found || data[0]); // fallback to first patient if no ID
+      } catch (error) {
+        console.error("Failed to fetch patient", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatient();
+  }, [patientId]);
 
   const labResults = [
     { test: "Complete Blood Count (CBC)", date: "April 10, 2026", status: "Verified", doctor: "Dr. Cruz" },
@@ -51,61 +70,76 @@ export function ClinicalView() {
           </Link>
         </div>
         {/* Patient Header Profile */}
-        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-600 mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-2xl font-bold text-gray-900">Maria Santos</h2>
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold">Verified Patient</span>
-              </div>
-              <p className="text-gray-600">Patient ID: {patientId || "NCH-2026-001234"}</p>
-            </div>
+        {loading ? (
+          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-600 mb-6 text-center text-gray-500">
+            Loading patient data...
           </div>
+        ) : !patient ? (
+          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-600 mb-6 text-center text-red-500">
+            Patient not found
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-600 mb-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 className="text-2xl font-bold text-gray-900">{patient.first_name} {patient.last_name}</h2>
+                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold">Verified Patient</span>
+                </div>
+                <p className="text-gray-600">Patient ID: {patient.patient_id}</p>
+              </div>
+            </div>
 
-          <div className="grid md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              <div>
-                <p className="text-gray-600">Date of Birth</p>
-                <p className="font-bold text-gray-900">March 15, 1985 (41 years)</p>
+            <div className="grid md:grid-cols-4 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                <div>
+                  <p className="text-gray-600">Date of Birth</p>
+                  <p className="font-bold text-gray-900">
+                    {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'Not provided'}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-gray-400" />
-              <div>
-                <p className="text-gray-600">Contact</p>
-                <p className="font-bold text-gray-900">+63 917 123 4567</p>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-400" />
+                <div>
+                  <p className="text-gray-600">Contact</p>
+                  <p className="font-bold text-gray-900">{patient.contact_number || 'Not provided'}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-gray-400" />
-              <div>
-                <p className="text-gray-600">Address</p>
-                <p className="font-bold text-gray-900">123 Rizal St, Naga City</p>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <div>
+                  <p className="text-gray-600">Address</p>
+                  <p className="font-bold text-gray-900">{patient.address || 'Not provided'}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Vitals Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <p className="text-sm text-gray-600 mb-2">Blood Type</p>
-            <p className="text-5xl font-bold text-red-600">O+</p>
-          </div>
+        {patient && (
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <p className="text-sm text-gray-600 mb-2">Blood Type</p>
+              <p className="text-5xl font-bold text-red-600">{patient.blood_type || 'N/A'}</p>
+            </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <p className="text-sm text-gray-600 mb-3">Known Allergies</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-4 py-2 bg-red-100 text-red-700 rounded-full font-bold">
-                Allergy: Penicillin
-              </span>
-              <span className="px-4 py-2 bg-red-100 text-red-700 rounded-full font-bold">
-                Allergy: Shellfish
-              </span>
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <p className="text-sm text-gray-600 mb-3">Known Allergies</p>
+              <div className="flex flex-wrap gap-2">
+                {patient.allergies ? (
+                  <span className="px-4 py-2 bg-red-100 text-red-700 rounded-full font-bold">
+                    {patient.allergies}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">None reported</span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Navigation Tabs */}
         <div className="bg-white rounded-xl shadow-md mb-6">

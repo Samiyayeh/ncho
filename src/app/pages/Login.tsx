@@ -1,11 +1,40 @@
 import { Heart, Lock, AlertCircle } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useState } from "react";
+import { api } from "../api/client";
 
 export function Login() {
   const [role, setRole] = useState<"patient" | "provider">("patient");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const data = await api.post('/auth/login', { email, password, role });
+      
+      // Save token and user details to localStorage
+      localStorage.setItem('ncho_token', data.token);
+      localStorage.setItem('ncho_user', JSON.stringify(data.user));
+
+      // Redirect based on role
+      if (role === 'patient') {
+        navigate('/patient');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to login. Please check your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center px-4">
@@ -52,8 +81,15 @@ export function Login() {
             </button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded">
+              {error}
+            </div>
+          )}
+
           {/* Login Form */}
-          <div className="space-y-4 mb-6">
+          <form onSubmit={handleLogin} className="space-y-4 mb-6">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
               <input
@@ -61,6 +97,7 @@ export function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
+                required
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
               />
             </div>
@@ -72,18 +109,20 @@ export function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
+                required
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
               />
             </div>
-          </div>
 
-          {/* Login Button */}
-          <Link
-            to={role === "patient" ? "/patient" : "/dashboard"}
-            className="block w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg text-center font-bold hover:opacity-90 transition mb-4"
-          >
-            Login
-          </Link>
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="block w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg text-center font-bold hover:opacity-90 transition mb-4 disabled:opacity-50"
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
 
           {/* Provider 2FA Notice */}
           {role === "provider" && (

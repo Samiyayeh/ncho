@@ -1,0 +1,94 @@
+import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { PatientModel } from '../models/PatientModel';
+import { ProviderModel } from '../models/ProviderModel';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_change_me';
+
+export const registerPatient = async (req: Request, res: Response) => {
+  try {
+    const { first_name, last_name, email, password, date_of_birth, gender, contact_number, address } = req.body;
+
+    const existingPatient = await PatientModel.findByEmail(email);
+    if (existingPatient) {
+      return res.status(400).json({ error: 'Email already registered.' });
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    const patient_id = `NCH-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    await PatientModel.create({
+      patient_id, first_name, last_name, email, password_hash, date_of_birth, gender, contact_number, address
+    });
+
+    res.status(201).json({ message: 'Patient registered successfully', patient_id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+export const registerProvider = async (req: Request, res: Response) => {
+  try {
+    const { first_name, last_name, specialty, email, password, contact_number } = req.body;
+
+    const existingProvider = await ProviderModel.findByEmail(email);
+    if (existingProvider) {
+      return res.status(400).json({ error: 'Email already registered.' });
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    const provider_id = `PRV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    await ProviderModel.create({
+      provider_id, first_name, last_name, specialty, email, password_hash, contact_number
+    });
+
+    res.status(201).json({ message: 'Provider registered successfully', provider_id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password, role } = req.body; // role: 'patient' or 'provider'
+
+    let user;
+    if (role === 'patient') {
+      user = await PatientModel.findByEmail(email);
+    } else if (role === 'provider') {
+      user = await ProviderModel.findByEmail(email);
+    } else {
+      return res.status(400).json({ error: 'Invalid role specified.' });
+    }
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    const userId = role === 'patient' ? user.patient_id : user.provider_id;
+    const token = jwt.sign({ id: userId, role }, JWT_SECRET, { expiresIn: '8h' });
+
+    res.status(200).json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: userId,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        role
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
