@@ -1,0 +1,119 @@
+import { QrCode, Activity, Heart, FileText } from "lucide-react";
+import { PatientBottomNav } from "../components/PatientBottomNav";
+
+export function PatientPassport() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 pb-24">
+      {/* Header */}
+      <header className="bg-white shadow-sm mb-6">
+        <div className="px-4 py-4">
+          <div className="flex items-center gap-3 mb-2">
+            <Heart className="w-6 h-6 text-blue-600" />
+            <h1 className="text-lg font-bold text-gray-900">NCHO Patient-Link</h1>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Welcome, Maria Santos</h2>
+          <p className="text-sm text-gray-600">Your digital health passport is ready to use</p>
+        </div>
+      </header>
+
+      <div className="max-w-md mx-auto px-4 space-y-4">
+        {/* QR Code Card */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Your Health Passport QR CODE</h3>
+
+          {/* QR Code Display */}
+          <div className="bg-gray-50 rounded-lg p-6 mb-4 flex justify-center">
+            <div className="w-48 h-48 bg-white border-4 border-gray-300 rounded-lg flex items-center justify-center">
+              <QrCode className="w-32 h-32 text-gray-400" />
+            </div>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">Patient ID</p>
+            <p className="text-xl font-bold text-blue-600 mb-4">NCH-2026-001234</p>
+            <p className="text-xs text-gray-500">
+              Show this QR code to any NCHO healthcare provider to grant access to your health records
+            </p>
+          </div>
+        </div>
+
+        {/* Vitals Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl shadow-md p-6 text-center">
+            <p className="text-sm text-gray-600 mb-2">Blood Type</p>
+            <p className="text-4xl font-bold text-red-600">O+</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <p className="text-sm text-gray-600 mb-3">Allergies</p>
+            <div className="space-y-2">
+              <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+                Penicillin
+              </span>
+              <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs ml-2">
+                Shellfish
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Conditions */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <p className="text-sm text-gray-600 mb-2">Active Conditions</p>
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-orange-500" />
+            <span className="font-bold text-gray-900">Essential Hypertension</span>
+          </div>
+        </div>
+
+        {/* Recent Lab Results */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-gray-900">Recent Lab Results</h3>
+            <FileText className="w-5 h-5 text-gray-400" />
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Complete Blood Count (CBC)</span>
+              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Verified</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Fasting Blood Sugar</span>
+              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Verified</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Lipid Profile</span>
+              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Verified</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Personal Information */}
+        <div className="bg-gray-50 rounded-xl shadow-sm p-6">
+          <h3 className="font-bold text-gray-900 mb-4">Personal Information</h3>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="text-gray-600">Full Name</p>
+              <p className="font-bold text-gray-900">Maria Santos</p>
+            </div>
+            <div>
+              <p className="text-gray-600">Date of Birth</p>
+              <p className="font-bold text-gray-900">March 15, 1985</p>
+            </div>
+            <div>
+              <p className="text-gray-600">Contact Number</p>
+              <p className="font-bold text-gray-900">+63 917 123 4567</p>
+            </div>
+            <div>
+              <p className="text-gray-600">Address</p>
+              <p className="font-bold text-gray-900">123 Rizal Street, Naga City, Camarines Sur</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Navigation */}
+      <PatientBottomNav />
+    </div>
+  );
+}
