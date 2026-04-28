@@ -27,7 +27,7 @@ export function Login() {
       if (role === 'patient') {
         navigate('/patient');
       } else {
-        navigate('/dashboard');
+        navigate('/provider/dashboard');
       }
     } catch (err: any) {
       setError(err.message || "Failed to login. Please check your credentials.");

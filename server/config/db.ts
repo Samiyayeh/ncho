@@ -1,27 +1,37 @@
-import mysql from 'mysql2/promise';
+import { Sequelize } from 'sequelize-typescript';
 import dotenv from 'dotenv';
+import path from 'path';
 
+// Load env variables
 dotenv.config();
 
-// Create a connection pool to the MySQL database
-const pool = mysql.createPool({
+// We initialize Sequelize and automatically load all models from the models directory.
+const sequelize = new Sequelize({
+  dialect: 'mysql',
   host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
+  username: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'ncho_patient_link',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+  models: [path.join(__dirname, '../models')], // Auto-load models
+  logging: false, // Set to console.log to see SQL queries
+  pool: {
+    max: 10,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  }
 });
 
-// Test connection
-pool.getConnection()
-  .then(connection => {
-    console.log('Successfully connected to the MySQL database pool.');
-    connection.release();
-  })
-  .catch(err => {
-    console.error('Error connecting to the database:', err);
-  });
+// Test connection function
+export const testConnection = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Successfully connected to the MySQL database via Sequelize.');
+    // In dev, we can sync models, but be careful in production!
+    // await sequelize.sync({ alter: true });
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
+};
 
-export default pool;
+export default sequelize;

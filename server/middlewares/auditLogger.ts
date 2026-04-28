@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './authMiddleware';
-import pool from '../config/db';
+import { AuditLog } from '../models/AuditLog';
 
 /**
  * Automated Audit Logger Middleware
@@ -16,8 +16,24 @@ export const auditLogger = (actionDescription?: string) => {
       // Only log successful actions or specific clinical errors (e.g., status < 400 or specific 403s)
       if (res.statusCode >= 400 && res.statusCode !== 403) return;
 
-      const providerId = req.user?.role === 'provider' ? req.user.id : null;
-      const patientId = req.user?.role === 'patient' ? req.user.id : (req.body.patient_id || req.params.patientId || null);
+      let providerId = null;
+      let patientId = null;
+
+      try {
+        if (req.user && req.user.role === 'provider') providerId = req.user.id;
+        
+        if (req.user && req.user.role === 'patient') {
+          patientId = req.user.id;
+        } else {
+          if (req.body && typeof req.body === 'object' && 'patient_id' in req.body) {
+            patientId = req.body.patient_id;
+          } else if (req.params && typeof req.params === 'object' && 'patientId' in req.params) {
+            patientId = req.params.patientId;
+          }
+        }
+      } catch (e) {
+        console.error('[Audit Logger Error] Failed to safely extract IDs:', e);
+      }
       
       // Determine action taken based on custom description, or fallback to HTTP method and path
       const actionTaken = actionDescription || `[${req.method}] ${req.originalUrl}`;
@@ -25,11 +41,13 @@ export const auditLogger = (actionDescription?: string) => {
       const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
 
       try {
-        await pool.query(
-          `INSERT INTO AUDIT_LOGS (provider_id, patient_id, action_taken, endpoint_accessed, ip_address) 
-           VALUES (?, ?, ?, ?, ?)`,
-          [providerId, patientId, actionTaken, endpoint, ipAddress]
-        );
+        await AuditLog.create({
+          provider_id: providerId,
+          patient_id: patientId,
+          action_taken: actionTaken,
+          endpoint_accessed: endpoint,
+          ip_address: ipAddress
+        });
       } catch (error) {
         // Silently fail the logger so it doesn't break the application flow, but log to server console
         console.error('[Audit Logger Error] Failed to insert log:', error);

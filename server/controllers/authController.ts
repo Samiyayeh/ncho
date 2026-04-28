@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { PatientModel } from '../models/PatientModel';
-import { ProviderModel } from '../models/ProviderModel';
+import { Patient } from '../models/Patient';
+import { Provider } from '../models/Provider';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_change_me';
 
@@ -10,7 +10,7 @@ export const registerPatient = async (req: Request, res: Response) => {
   try {
     const { first_name, last_name, email, password, date_of_birth, gender, contact_number, address } = req.body;
 
-    const existingPatient = await PatientModel.findByEmail(email);
+    const existingPatient = await Patient.findOne({ where: { email } });
     if (existingPatient) {
       return res.status(400).json({ error: 'Email already registered.' });
     }
@@ -18,7 +18,7 @@ export const registerPatient = async (req: Request, res: Response) => {
     const password_hash = await bcrypt.hash(password, 10);
     const patient_id = `NCH-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    await PatientModel.create({
+    await Patient.create({
       patient_id, first_name, last_name, email, password_hash, date_of_birth, gender, contact_number, address
     });
 
@@ -33,7 +33,7 @@ export const registerProvider = async (req: Request, res: Response) => {
   try {
     const { first_name, last_name, specialty, email, password, contact_number } = req.body;
 
-    const existingProvider = await ProviderModel.findByEmail(email);
+    const existingProvider = await Provider.findOne({ where: { email } });
     if (existingProvider) {
       return res.status(400).json({ error: 'Email already registered.' });
     }
@@ -41,7 +41,7 @@ export const registerProvider = async (req: Request, res: Response) => {
     const password_hash = await bcrypt.hash(password, 10);
     const provider_id = `PRV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    await ProviderModel.create({
+    await Provider.create({
       provider_id, first_name, last_name, specialty, email, password_hash, contact_number
     });
 
@@ -56,11 +56,15 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password, role } = req.body; // role: 'patient' or 'provider'
 
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
     let user;
     if (role === 'patient') {
-      user = await PatientModel.findByEmail(email);
+      user = await Patient.findOne({ where: { email } });
     } else if (role === 'provider') {
-      user = await ProviderModel.findByEmail(email);
+      user = await Provider.findOne({ where: { email } });
     } else {
       return res.status(400).json({ error: 'Invalid role specified.' });
     }
@@ -69,12 +73,14 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
+    console.log(`Login attempt for ${email}. Password hash exists: ${!!user.password_hash}`);
+
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    const userId = role === 'patient' ? user.patient_id : user.provider_id;
+    const userId = role === 'patient' ? (user as Patient).patient_id : (user as Provider).provider_id;
     const token = jwt.sign({ id: userId, role }, JWT_SECRET, { expiresIn: '8h' });
 
     res.status(200).json({

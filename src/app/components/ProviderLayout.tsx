@@ -1,5 +1,5 @@
 import { Home, Users, UploadCloud, FileText, LogOut, Heart } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { ReactNode } from "react";
 
 interface ProviderLayoutProps {
@@ -8,15 +8,32 @@ interface ProviderLayoutProps {
 
 export function ProviderLayout({ children }: ProviderLayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Read logged-in provider info from localStorage
+  const userRaw = localStorage.getItem('ncho_user');
+  const user = userRaw ? JSON.parse(userRaw) : null;
+  const providerName = user ? `Dr. ${user.last_name || user.first_name}` : 'Provider';
+
+  const handleLogout = () => {
+    localStorage.removeItem('ncho_token');
+    localStorage.removeItem('ncho_user');
+    navigate('/login');
+  };
 
   const navItems = [
-    { path: "/dashboard", icon: Home, label: "Dashboard" },
+    { path: "/provider/dashboard", icon: Home, label: "Dashboard" },
     { path: "/provider", icon: Users, label: "Patient Directory" },
-    { path: "/upload", icon: UploadCloud, label: "Upload Records" },
-    { path: "/admin/audit-logs", icon: FileText, label: "System Logs", adminOnly: true },
+    { path: "/provider/upload", icon: UploadCloud, label: "Upload Records" },
+    { path: "/admin/audit-logs", icon: FileText, label: "System Logs" },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === "/provider") {
+      return location.pathname === "/provider" || location.pathname.startsWith("/provider/clinical");
+    }
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
@@ -61,10 +78,13 @@ export function ProviderLayout({ children }: ProviderLayoutProps) {
         <div className="p-4 border-t border-slate-700">
           <div className="flex flex-col gap-3">
             <div className="px-2">
-              <p className="text-sm font-bold text-white">Dr. R. Villanueva</p>
+              <p className="text-sm font-bold text-white">{providerName}</p>
               <p className="text-xs text-slate-400">Healthcare Provider</p>
             </div>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition font-medium">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition font-medium"
+            >
               <LogOut className="w-5 h-5" />
               <span>Log Out</span>
             </button>

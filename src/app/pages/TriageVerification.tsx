@@ -1,11 +1,19 @@
-import { Search, AlertCircle, CheckCircle, X } from "lucide-react";
-import { Link } from "react-router";
+import { Search, AlertCircle, CheckCircle, X, QrCode } from "lucide-react";
+import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
+import { QrScanner } from "../components/QrScanner";
+import { api } from "../api/client";
+
+import { toast } from "sonner";
 
 export function TriageVerification() {
+  const navigate = useNavigate();
   const [pendingEmail, setPendingEmail] = useState("");
   const [accountFound, setAccountFound] = useState(false);
+  const [foundPatient, setFoundPatient] = useState<any>(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanError, setScanError] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -17,9 +25,72 @@ export function TriageVerification() {
   const [allergyInput, setAllergyInput] = useState("");
   const [chronicConditions, setChronicConditions] = useState("");
   const [verificationChecked, setVerificationChecked] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleLookup = () => {
-    setAccountFound(true);
+  const handleLookup = async () => {
+    if (!pendingEmail.trim()) {
+      setScanError("Please enter an email or temporary ID");
+      return;
+    }
+    setScanError("");
+    try {
+      const res = await api.get(`/provider/patient-lookup?query=${encodeURIComponent(pendingEmail.trim())}`);
+      setFoundPatient(res);
+      setFirstName(res.first_name || "");
+      setLastName(res.last_name || "");
+      setAccountFound(true);
+      if (res.account_status === 'ACTIVE') {
+        toast.info("This patient's account is already ACTIVE.");
+      }
+    } catch (error: any) {
+      console.error(error);
+      setScanError(error.message || "No patient found with that email/ID");
+      setAccountFound(false);
+    }
+  };
+
+  const handleActivate = async () => {
+    if (!foundPatient) return;
+    setIsVerifying(true);
+    try {
+      await api.post('/provider/verify-patient', {
+        body: JSON.stringify({
+          patient_id: foundPatient.patient_id,
+          first_name: firstName,
+          last_name: lastName,
+          date_of_birth: dateOfBirth,
+          address,
+          voter_registered: voterRegistered,
+          household_head: householdHead,
+          blood_type: bloodType,
+          allergies,
+          chronic_conditions: chronicConditions
+        })
+      });
+      
+      toast.success("Patient successfully verified and Health Passport activated!");
+      // Redirect to clinical view
+      navigate(`/provider/clinical/${foundPatient.patient_id}`);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to verify patient");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleScanSuccess = async (decodedText: string) => {
+    try {
+      setShowScanner(false);
+      const res = await api.post("/provider/scan-qr", { body: JSON.stringify({ token_string: decodedText }) });
+      if (res && res.patient_id) {
+        // Automatically redirect to their clinical file!
+        navigate(`/provider/clinical/${res.patient_id}`);
+      }
+    } catch (error: any) {
+      console.error(error);
+      setScanError(error.message || "Invalid or expired QR Code");
+    }
   };
 
   const addAllergy = () => {
@@ -65,7 +136,7 @@ export function TriageVerification() {
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
                 />
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end gap-3">
                 <button
                   onClick={handleLookup}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-bold"
@@ -73,8 +144,37 @@ export function TriageVerification() {
                   <Search className="w-5 h-5" />
                   Lookup
                 </button>
+                <div className="text-gray-400 font-bold px-2 flex items-center h-full">OR</div>
+                <button
+                  onClick={() => setShowScanner(true)}
+                  className="px-6 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition flex items-center gap-2 font-bold"
+                >
+                  <QrCode className="w-5 h-5" />
+                  Scan ID
+                </button>
               </div>
             </div>
+
+            {scanError && (
+              <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-600 rounded-lg">
+                <p className="text-sm font-bold text-red-900">{scanError}</p>
+              </div>
+            )}
+
+            {showScanner && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-lg">Scan Patient QR Code</h3>
+                    <button onClick={() => setShowScanner(false)} className="text-gray-500 hover:text-gray-800">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <QrScanner onScanSuccess={handleScanSuccess} onScanError={() => {}} />
+                  <p className="text-sm text-gray-500 text-center mt-4">Position the patient's QR code inside the frame.</p>
+                </div>
+              </div>
+            )}
 
             {accountFound && (
               <div className="mt-4 p-4 bg-green-50 border-l-4 border-green-600 rounded-lg">
@@ -324,9 +424,11 @@ export function TriageVerification() {
                 Cancel
               </Link>
               <button
-                disabled={!verificationChecked || !firstName || !lastName || !dateOfBirth || !address || !voterRegistered || !householdHead || !bloodType}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleActivate}
+                disabled={!verificationChecked || !firstName || !lastName || !dateOfBirth || !address || !voterRegistered || !householdHead || !bloodType || isVerifying}
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
+                {isVerifying && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                 Activate Patient Passport
               </button>
             </div>
