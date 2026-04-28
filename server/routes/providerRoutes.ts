@@ -5,6 +5,7 @@ import {
   uploadMedicalRecord, 
   getMedicalRecords,
   deleteMedicalRecord,
+  getPatientEncounters,
   getAdminAuditLogs,
   scanQr,
   patientLookup,

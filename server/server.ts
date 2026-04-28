@@ -11,7 +11,7 @@ import providerRoutes from './routes/providerRoutes';
 dotenv.config();
 
 const app = express();
-const port = Number(process.env.PORT) || 5000;
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
@@ -35,11 +35,11 @@ app.get('/', (req: Request, res: Response) => {
 const startServer = async () => {
   await testConnection();
     // Synchronize Sequelize models with the database
-    // Temporarily enabling alter: true for Phase 8 DB update
-    await sequelize.sync({ alter: true });
+    // Disabled { alter: true } temporarily to avoid MySQL deadlocks from orphaned connections
+    await sequelize.sync();
   console.log('Sequelize models synchronized with the database.');
 
- app.listen(port, '0.0.0.0', () => {
+ app.listen(port, () => {
   console.log(`Server is running on network IP and port ${port}`);
 });
 };

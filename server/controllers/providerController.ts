@@ -8,6 +8,7 @@ import { MedicalRecord } from '../models/MedicalRecord';
 import { AuditLog } from '../models/AuditLog';
 import { QrAccessToken } from '../models/QrAccessToken';
 import sequelize from '../config/db';
+import { Op } from 'sequelize';
 
 export const scanQr = async (req: AuthRequest, res: Response) => {
   try {
@@ -52,7 +53,7 @@ export const patientLookup = async (req: AuthRequest, res: Response) => {
 
     const patient = await Patient.findOne({
       where: {
-        [sequelize.Sequelize.Op.or]: [
+        [Op.or]: [
           { email: query },
           { patient_id: query }
         ]
