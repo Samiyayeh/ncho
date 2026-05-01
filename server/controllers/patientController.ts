@@ -5,6 +5,7 @@ import { MedicalRecord } from '../models/MedicalRecord';
 import { Encounter } from '../models/Encounter';
 import { Provider } from '../models/Provider';
 import { AuditLog } from '../models/AuditLog';
+import { Prescription } from '../models/Prescription';
 import { QrAccessToken } from '../models/QrAccessToken';
 import crypto from 'crypto';
 
@@ -69,7 +70,7 @@ export const getPatientRecords = async (req: AuthRequest, res: Response) => {
 
     const records = await MedicalRecord.findAll({
       where: { patient_id: patientId },
-      include: [{ model: Provider, attributes: ['first_name', 'last_name'] }],
+      include: [{ model: Provider, as: 'Provider', attributes: ['first_name', 'last_name'] }],
       order: [['created_at', 'DESC']]
     });
     res.status(200).json(records);
@@ -86,7 +87,10 @@ export const getPatientEncounters = async (req: AuthRequest, res: Response) => {
 
     const encounters = await Encounter.findAll({
       where: { patient_id: patientId },
-      include: [{ model: Provider, attributes: ['first_name', 'last_name', 'specialty'] }],
+      include: [
+        { model: Provider, as: 'Provider', attributes: ['first_name', 'last_name', 'specialty'] },
+        { model: Prescription, as: 'Prescriptions' }
+      ],
       order: [['encounter_date', 'DESC']]
     });
 
@@ -105,7 +109,7 @@ export const getPatientPrivacyLogs = async (req: AuthRequest, res: Response) => 
 
     const logs = await AuditLog.findAll({
       where: { patient_id: patientId },
-      include: [{ model: Provider, attributes: ['first_name', 'last_name', 'specialty'] }],
+      include: [{ model: Provider, as: 'Provider', attributes: ['first_name', 'last_name', 'specialty'] }],
       order: [['timestamp', 'DESC']],
       limit: 100
     });

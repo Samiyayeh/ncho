@@ -29,29 +29,6 @@ export const registerPatient = async (req: Request, res: Response) => {
   }
 };
 
-export const registerProvider = async (req: Request, res: Response) => {
-  try {
-    const { first_name, last_name, specialty, email, password, contact_number } = req.body;
-
-    const existingProvider = await Provider.findOne({ where: { email } });
-    if (existingProvider) {
-      return res.status(400).json({ error: 'Email already registered.' });
-    }
-
-    const password_hash = await bcrypt.hash(password, 10);
-    const provider_id = `PRV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    await Provider.create({
-      provider_id, first_name, last_name, specialty, email, password_hash, contact_number
-    });
-
-    res.status(201).json({ message: 'Provider registered successfully', provider_id });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error.' });
-  }
-};
-
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password, role } = req.body; // role: 'patient' or 'provider'

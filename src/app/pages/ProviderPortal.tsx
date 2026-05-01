@@ -43,7 +43,7 @@ export function ProviderPortal() {
   const handleScanSuccess = async (decodedText: string) => {
     try {
       setShowScanner(false);
-      const res = await api.post("/provider/scan-qr", { body: JSON.stringify({ token_string: decodedText }) });
+      const res = await api.post("/provider/scan-qr", { token_string: decodedText });
       if (res && res.patient_id) {
         navigate(`/provider/clinical/${res.patient_id}`);
       }

@@ -46,17 +46,10 @@ export function ProviderDashboard() {
           <div className="flex gap-3">
             <Link
               to="/triage/verification"
-              className="px-6 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition flex items-center gap-2"
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition flex items-center gap-2 font-bold"
             >
               <UserPlus className="w-5 h-5" />
               Verify Patient
-            </Link>
-            <Link
-              to="/triage/register"
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition flex items-center gap-2"
-            >
-              <UserPlus className="w-5 h-5" />
-              Register New Patient
             </Link>
           </div>
         </div>

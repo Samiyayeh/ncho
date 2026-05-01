@@ -38,6 +38,14 @@ export function TriageVerification() {
       setFoundPatient(res);
       setFirstName(res.first_name || "");
       setLastName(res.last_name || "");
+      // Handle Date of Birth formatting for input[type="date"]
+      if (res.date_of_birth) {
+        const dateStr = typeof res.date_of_birth === 'string' ? res.date_of_birth : '';
+        setDateOfBirth(dateStr.includes('T') ? dateStr.split('T')[0] : dateStr);
+      } else {
+        setDateOfBirth("");
+      }
+      setAddress(res.address || "");
       setAccountFound(true);
       if (res.account_status === 'ACTIVE') {
         toast.info("This patient's account is already ACTIVE.");
@@ -54,7 +62,6 @@ export function TriageVerification() {
     setIsVerifying(true);
     try {
       await api.post('/provider/verify-patient', {
-        body: JSON.stringify({
           patient_id: foundPatient.patient_id,
           first_name: firstName,
           last_name: lastName,
@@ -65,7 +72,6 @@ export function TriageVerification() {
           blood_type: bloodType,
           allergies,
           chronic_conditions: chronicConditions
-        })
       });
       
       toast.success("Patient successfully verified and Health Passport activated!");
@@ -82,7 +88,7 @@ export function TriageVerification() {
   const handleScanSuccess = async (decodedText: string) => {
     try {
       setShowScanner(false);
-      const res = await api.post("/provider/scan-qr", { body: JSON.stringify({ token_string: decodedText }) });
+      const res = await api.post("/provider/scan-qr", { token_string: decodedText });
       if (res && res.patient_id) {
         // Automatically redirect to their clinical file!
         navigate(`/provider/clinical/${res.patient_id}`);
@@ -205,8 +211,9 @@ export function TriageVerification() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Enter first name"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-100 bg-gray-50 text-gray-500 rounded-lg focus:outline-none cursor-not-allowed"
                   required
+                  disabled
                 />
               </div>
 
@@ -219,8 +226,9 @@ export function TriageVerification() {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Enter last name"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-100 bg-gray-50 text-gray-500 rounded-lg focus:outline-none cursor-not-allowed"
                   required
+                  disabled
                 />
               </div>
             </div>
@@ -234,8 +242,9 @@ export function TriageVerification() {
                   type="date"
                   value={dateOfBirth}
                   onChange={(e) => setDateOfBirth(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-100 bg-gray-50 text-gray-500 rounded-lg focus:outline-none cursor-not-allowed"
                   required
+                  disabled
                 />
               </div>
 
@@ -248,8 +257,9 @@ export function TriageVerification() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Street, Barangay, City, Province"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-100 bg-gray-50 text-gray-500 rounded-lg focus:outline-none cursor-not-allowed"
                   required
+                  disabled
                 />
               </div>
             </div>
@@ -418,7 +428,7 @@ export function TriageVerification() {
 
             <div className="flex gap-4">
               <Link
-                to="/dashboard"
+                to="/provider/dashboard"
                 className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
               >
                 Cancel

@@ -13,7 +13,6 @@ import { PrivacyLogs } from "./pages/PrivacyLogs";
 import { MedicalRecordUpload } from "./pages/MedicalRecordUpload";
 import { AdminAuditLogs } from "./pages/AdminAuditLogs";
 import { TriageVerification } from "./pages/TriageVerification";
-import { RegisterNewPatient } from "./pages/RegisterNewPatient";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
@@ -48,5 +47,4 @@ export const router = createBrowserRouter([
 
   // Triage
   { path: "/triage/verification", Component: TriageVerification },
-  { path: "/triage/register", Component: RegisterNewPatient },
 ]);

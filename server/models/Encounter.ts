@@ -23,8 +23,8 @@ export class Encounter extends Model {
   })
   declare patient_id: string;
 
-  @BelongsTo(() => Patient, { onDelete: 'CASCADE' })
-  declare patient: Patient;
+  @BelongsTo(() => Patient, { as: 'Patient', onDelete: 'CASCADE' })
+  declare Patient: Patient;
 
   @ForeignKey(() => Provider)
   @Column({
@@ -33,8 +33,8 @@ export class Encounter extends Model {
   })
   declare provider_id: string;
 
-  @BelongsTo(() => Provider, { onDelete: 'CASCADE' })
-  declare provider: Provider;
+  @BelongsTo(() => Provider, { as: 'Provider', onDelete: 'CASCADE' })
+  declare Provider: Provider;
 
   @Column({
     type: DataType.DATE,
@@ -63,8 +63,8 @@ export class Encounter extends Model {
   @Column(DataType.TEXT)
   declare treatment_notes: string;
 
-  @HasMany(() => Prescription)
-  declare prescriptions: Prescription[];
+  @HasMany(() => Prescription, { as: 'Prescriptions' })
+  declare Prescriptions: Prescription[];
 
   @HasMany(() => MedicalRecord)
   declare medical_records: MedicalRecord[];
