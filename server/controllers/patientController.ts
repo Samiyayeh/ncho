@@ -7,6 +7,8 @@ import { Provider } from '../models/Provider';
 import { AuditLog } from '../models/AuditLog';
 import { Prescription } from '../models/Prescription';
 import { QrAccessToken } from '../models/QrAccessToken';
+import { Queue } from '../models/Queue';
+import { Op } from 'sequelize';
 import crypto from 'crypto';
 
 export const getQrToken = async (req: AuthRequest, res: Response) => {
@@ -95,9 +97,14 @@ export const getPatientEncounters = async (req: AuthRequest, res: Response) => {
     });
 
     res.status(200).json(encounters);
-  } catch (error) {
-    console.error('Error fetching patient encounters:', error);
-    res.status(500).json({ error: 'Internal server error.' });
+  } catch (error: any) {
+    console.error('CRITICAL ERROR fetching patient encounters:', error);
+    // Log the specific Sequelize error details if available
+    if (error.name === 'SequelizeDatabaseError') {
+      console.error('SQL:', error.sql);
+      console.error('Message:', error.message);
+    }
+    res.status(500).json({ error: 'Internal server error.', details: error.message });
   }
 };
 
@@ -120,3 +127,26 @@ export const getPatientPrivacyLogs = async (req: AuthRequest, res: Response) => 
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+export const getActiveQueue = async (req: AuthRequest, res: Response) => {
+  try {
+    const patientId = req.user?.id;
+    if (!patientId) return res.status(400).json({ error: 'Patient ID missing from token' });
+
+    const today = new Date().toISOString().split('T')[0];
+    const queue = await Queue.findOne({
+      where: {
+        patient_id: patientId,
+        date: today,
+        status: { [Op.ne]: 'COMPLETED' } // Still active if not completed
+      },
+      order: [['created_at', 'DESC']]
+    });
+
+    res.status(200).json(queue);
+  } catch (error) {
+    console.error('Error fetching active queue:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+

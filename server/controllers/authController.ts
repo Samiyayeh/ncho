@@ -67,7 +67,9 @@ export const login = async (req: Request, res: Response) => {
         id: userId,
         first_name: user.first_name,
         last_name: user.last_name,
-        role
+        role,
+        role_type: (user as any).role_type || null,
+        prc_license_number: (user as any).prc_license_number || null
       }
     });
   } catch (error) {

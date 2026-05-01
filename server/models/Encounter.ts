@@ -3,6 +3,8 @@ import { Patient } from './Patient';
 import { Provider } from './Provider';
 import { Prescription } from './Prescription';
 import { MedicalRecord } from './MedicalRecord';
+import { Queue } from './Queue';
+import { Referral } from './Referral';
 
 @Table({
   tableName: 'ENCOUNTERS',
@@ -36,14 +38,27 @@ export class Encounter extends Model {
   @BelongsTo(() => Provider, { as: 'Provider', onDelete: 'CASCADE' })
   declare Provider: Provider;
 
+  @ForeignKey(() => Queue)
+  @Column({
+    type: DataType.UUID,
+    allowNull: true // Optional for legacy encounters or direct uploads
+  })
+  declare queue_id: string;
+
+  @BelongsTo(() => Queue)
+  declare Queue: Queue;
+
   @Column({
     type: DataType.DATE,
     defaultValue: DataType.NOW
   })
   declare encounter_date: Date;
 
-  @Column(DataType.STRING(20))
-  declare blood_pressure: string;
+  @Column(DataType.INTEGER)
+  declare bp_systolic: number;
+
+  @Column(DataType.INTEGER)
+  declare bp_diastolic: number;
 
   @Column(DataType.INTEGER)
   declare heart_rate: number;
@@ -63,9 +78,15 @@ export class Encounter extends Model {
   @Column(DataType.TEXT)
   declare treatment_notes: string;
 
+  @Column(DataType.TEXT)
+  declare treatment_plan: string;
+
   @HasMany(() => Prescription, { as: 'Prescriptions' })
   declare Prescriptions: Prescription[];
 
   @HasMany(() => MedicalRecord)
   declare medical_records: MedicalRecord[];
+
+  @HasMany(() => Referral)
+  declare referrals: Referral[];
 }
