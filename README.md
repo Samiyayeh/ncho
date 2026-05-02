@@ -1,67 +1,112 @@
 # NCHO Patient-Link
 
-NCHO Patient-Link is a comprehensive healthcare web application consisting of a React frontend and a Node.js/Express backend with a MySQL database.
+NCHO Patient-Link is a professional healthcare ecosystem designed to streamline patient registration, clinical encounters, and pharmaceutical fulfillment. The system consists of a React-based frontend and a Node.js/Express backend powered by MySQL.
 
-## Prerequisites
+---
 
-Before you begin, ensure you have the following installed on your system:
-- **Node.js** (v18 or higher recommended)
-- **MySQL** (v8 or higher recommended)
+## 🚀 Quick Start Guide
 
-## 1. Database Setup
+### 1. Database Setup
+Ensure you have **MySQL** installed and running.
 
-1. Open your MySQL client or terminal.
-2. Run the provided schema script to create the database and tables. You can do this by executing `server/schema.sql`:
-   ```bash
-   mysql -u root -p < server/schema.sql
-   ```
-   *Note: Replace `root` with your MySQL username. You will be prompted for your password.*
+1.  **Create Databases:**
+    ```sql
+    CREATE DATABASE ncho_patient_link;
+    CREATE DATABASE ncho_test; -- For safe testing
+    ```
+2.  **Initialize Schema:**
+    Navigate to the `server` folder and run the schema against your main database:
+    ```bash
+    mysql -u root -p ncho_patient_link < schema.sql
+    ```
 
-## 2. Backend Setup
+### 2. Backend Setup
+1.  **Navigate to server:** `cd server`
+2.  **Install dependencies:** `npm install`
+3.  **Configure `.env`:**
+    Create a `.env` file in the `server` directory:
+    ```env
+    DB_HOST=localhost
+    DB_USER=root
+    DB_PASSWORD=your_password
+    DB_NAME=ncho_patient_link
+    PORT=5000
+    ```
+4.  **Configure `.env.test`:**
+    Create a `.env.test` file (for safe testing):
+    ```env
+    DB_HOST=localhost
+    DB_USER=root
+    DB_PASSWORD=your_password
+    DB_NAME=ncho_test
+    PORT=5001
+    ```
 
-The backend is built with Node.js, Express, and Sequelize ORM.
+### 3. Seeding the Database
+To populate the system with test patients and clinical providers:
+*   **Development Seed:** `npm run seed` (Wipes `ncho_patient_link`)
+*   **Test Seed:** `npm run seed:test` (Wipes `ncho_test`)
 
-1. Navigate to the `server` directory:
-   ```bash
-   cd server
-   ```
-2. Install the backend dependencies:
-   ```bash
-   npm install
-   ```
-3. Configure your environment variables:
-   - Create or verify the `.env` file in the `server` directory. It should look like this:
-     ```env
-     DB_HOST=localhost
-     DB_USER=root
-     DB_PASSWORD=your_mysql_password
-     DB_NAME=ncho_patient_link
-     PORT=5000
-     ```
-   - **Important:** Update `DB_USER` and `DB_PASSWORD` to match your local MySQL credentials.
-4. Start the backend development server:
-   ```bash
-   npm run dev
-   ```
-   The backend will run on `http://localhost:5000`.
+### 4. Frontend Setup
+1.  **Navigate to root:** `cd ..`
+2.  **Install dependencies:** `npm install`
+3.  **Start Frontend:** `npm run dev`
 
-## 3. Frontend Setup
+---
 
-The frontend is built with React and Vite.
+## 🧪 Testing the System (Manual Workflow)
 
-1. Open a new terminal and navigate to the **root directory** of the project (`ncho/`).
-2. Install the frontend dependencies:
-   ```bash
-   npm install
-   ```
-3. Configure your environment variables:
-   - Verify there is a `.env` file in the root directory with the following content:
-     ```env
-     VITE_API_BASE_URL=/api
-     ```
-4. Start the frontend development server:
-   ```bash
-   npm run dev
-   ```
-   The frontend will automatically proxy API requests (like `/api` and `/uploads`) to the backend server running on port 5000.
-   Open your browser and navigate to the URL provided by Vite (usually `http://localhost:5173`).
+Since automated tests have been removed, follow this manual guide to verify the clinical workflow.
+
+### 1. Reset the Test Environment
+Always start with a clean database to ensure John Doe is in the queue:
+```bash
+# In the /server terminal
+npm run seed:test
+```
+
+### 2. Run the Servers in Test Mode
+Ensure you are using the test database and port:
+*   **Backend**: `npm run dev:test` (runs on port 5001)
+*   **Frontend**: `npm run dev`
+
+### 3. Clinical Workflow Guide
+Follow these steps to test the full patient journey:
+
+| Step | Role | Login Email | Action |
+| :--- | :--- | :--- | :--- |
+| **1. Triage** | Nurse | `bob.ross@ncho.gov` | Find **John Doe**, click **Start Triage**, enter vitals. |
+| **2. Consult** | Physician | `alice.walker@ncho.gov` | Find **John Doe**, click **Consult**, enter diagnosis/Rx, select **Refer to Pharmacy**. |
+| **3. Dispense** | Pharmacist | `charlie.brown@ncho.gov` | Find **John Doe**, click **Consult**, verify meds, click **Confirm Dispensing**. |
+
+**Passwords for all accounts**: `password123`
+
+---
+
+## 👥 Seeded Test Accounts
+
+| Name | Role | Email |
+| :--- | :--- | :--- |
+| **John Doe** | Patient | `john.doe@example.com` |
+| **Jane Smith** | Patient | `jane.smith@example.com` |
+| **Alice Walker** | Physician | `alice.walker@ncho.gov` |
+| **Bob Ross** | Triage Nurse | `bob.ross@ncho.gov` |
+| **Charlie Brown**| Pharmacist | `charlie.brown@ncho.gov` |
+| **Diana Prince** | Dentist | `diana.prince@ncho.gov` |
+| **Ethan Hunt** | Social Worker| `ethan.hunt@ncho.gov` |
+
+*All passwords are set to: `password123`*
+
+---
+
+## 🛠️ Development Scripts
+
+### Root Directory
+*   `npm run dev`: Starts the Vite frontend.
+*   `npm run build`: Builds the frontend for production.
+
+### Server Directory
+*   `npm run dev`: Starts backend with `nodemon`.
+*   `npm run dev:test`: Starts backend using the test database.
+*   `npm run seed`: Resets and seeds the dev database.
+*   `npm run seed:test`: Resets and seeds the test database.

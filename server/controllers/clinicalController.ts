@@ -13,7 +13,7 @@ export const saveTriage = async (req: AuthRequest, res: Response) => {
 
     if (!provider_id) throw new Error('Unauthorized');
 
-    const queue = await Queue.findByPk(queue_id, { transaction });
+    const queue = await Queue.findByPk(queue_id as string, { transaction });
     if (!queue) return res.status(404).json({ error: 'Queue record not found.' });
 
     // Create or update encounter
@@ -54,7 +54,7 @@ export const saveClinical = async (req: AuthRequest, res: Response) => {
 
     if (!provider_id) throw new Error('Unauthorized');
 
-    const queue = await Queue.findByPk(queue_id, { transaction });
+    const queue = await Queue.findByPk(queue_id as string, { transaction });
     if (!queue) return res.status(404).json({ error: 'Queue record not found.' });
 
     const encounter = await Encounter.findOne({ where: { queue_id }, transaction });

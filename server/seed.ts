@@ -6,6 +6,8 @@ import { Prescription } from './models/Prescription';
 import { MedicalRecord } from './models/MedicalRecord';
 import { AuditLog } from './models/AuditLog';
 import { QrAccessToken } from './models/QrAccessToken';
+import { Queue } from './models/Queue'; 
+// import { Referral } from './models/Referral';
 import bcrypt from 'bcrypt';
 
 async function seed() {
@@ -15,22 +17,14 @@ async function seed() {
     await sequelize.authenticate();
     console.log('Connected to database.');
 
-    // 1. Clear all data
-    // We disable foreign key checks to truncate all tables safely
-    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-    await Prescription.truncate();
-    await MedicalRecord.truncate();
-    await Encounter.truncate();
-    await AuditLog.truncate();
-    await QrAccessToken.truncate();
-    await Patient.truncate();
-    await Provider.truncate();
-    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-    console.log('All tables cleared.');
+    // 1. Reset all tables
+    // This will drop tables if they exist and recreate them based on the models
+    await sequelize.sync({ force: true });
+    console.log('Database schema synchronized and tables reset.');
 
     const passwordHash = await bcrypt.hash('password123', 10);
 
-    // 2. Seed Patients (Verified/ACTIVE)
+    // 2. Seed Patients
     const patients = [
       {
         patient_id: 'NCH-2026-000001',
@@ -42,9 +36,11 @@ async function seed() {
         gender: 'Male',
         blood_type: 'O+',
         allergies: 'Penicillin',
+        contact_number: '09171234567',
         account_status: 'ACTIVE',
         voter_registered: true,
         household_head: true,
+        chronic_conditions: 'Hypertension',
         address: '123 Naga St, Concepcion Pequeña, Naga City'
       },
       {
@@ -57,9 +53,11 @@ async function seed() {
         gender: 'Female',
         blood_type: 'A-',
         allergies: 'Peanuts',
+        contact_number: '09181234567',
         account_status: 'ACTIVE',
         voter_registered: true,
         household_head: false,
+        chronic_conditions: null,
         address: '456 Panganiban Drive, Naga City'
       },
       {
@@ -71,9 +69,11 @@ async function seed() {
         date_of_birth: '1998-01-30',
         gender: 'Male',
         blood_type: 'B+',
-        account_status: 'ACTIVE',
+        contact_number: '09191234567',
+        account_status: 'UNVERIFIED',
         voter_registered: false,
         household_head: false,
+        chronic_conditions: 'Asthma',
         address: '789 Magsaysay Ave, Naga City'
       }
     ];
@@ -81,43 +81,81 @@ async function seed() {
     for (const p of patients) {
       await Patient.create(p as any);
     }
-    console.log('3 Patients seeded.');
+    console.log(`${patients.length} Patients seeded.`);
 
-    // 3. Seed Providers
+    // 3. Seed Providers (All Roles with PRC Licenses)
     const providers = [
       {
         provider_id: 'PRV-2026-1001',
         first_name: 'Alice',
         last_name: 'Walker',
-        specialty: 'Cardiology',
+        specialty: 'Internal Medicine',
         email: 'alice.walker@ncho.gov',
         password_hash: passwordHash,
-        contact_number: '09123456789'
+        contact_number: '09123456781',
+        prc_license_number: 'PHY-112233',
+        role_type: 'PHYSICIAN'
       },
       {
         provider_id: 'PRV-2026-1002',
         first_name: 'Bob',
         last_name: 'Ross',
-        specialty: 'General Practice',
+        specialty: 'Triage & Vital Signs',
         email: 'bob.ross@ncho.gov',
         password_hash: passwordHash,
-        contact_number: '09987654321'
+        contact_number: '09123456782',
+        prc_license_number: 'NUR-445566',
+        role_type: 'TRIAGE_NURSE'
       },
       {
         provider_id: 'PRV-2026-1003',
         first_name: 'Charlie',
         last_name: 'Brown',
-        specialty: 'Pediatrics',
+        specialty: 'Clinical Pharmacy',
         email: 'charlie.brown@ncho.gov',
         password_hash: passwordHash,
-        contact_number: '09456123789'
+        contact_number: '09123456783',
+        prc_license_number: 'PHA-778899',
+        role_type: 'PHARMACIST'
+      },
+      {
+        provider_id: 'PRV-2026-1004',
+        first_name: 'Diana',
+        last_name: 'Prince',
+        specialty: 'General Dentistry',
+        email: 'diana.prince@ncho.gov',
+        password_hash: passwordHash,
+        contact_number: '09123456784',
+        prc_license_number: 'DEN-998877',
+        role_type: 'DENTIST'
+      },
+      {
+        provider_id: 'PRV-2026-1005',
+        first_name: 'Ethan',
+        last_name: 'Hunt',
+        specialty: 'Community Welfare',
+        email: 'ethan.hunt@ncho.gov',
+        password_hash: passwordHash,
+        contact_number: '09123456785',
+        prc_license_number: 'RSW-665544',
+        role_type: 'SOCIAL_WORKER'
       }
     ];
 
     for (const pr of providers) {
       await Provider.create(pr as any);
     }
-    console.log('3 Providers seeded.');
+    console.log(`${providers.length} Providers seeded (All roles covered).`);
+    
+    // 4. Seed a Queue entry for John Doe (to enable immediate E2E testing)
+    await Queue.create({
+      patient_id: 'NCH-2026-000001', // John Doe
+      queue_number: 'A-001',
+      service_type: 'OUTPATIENT',
+      status: 'PENDING_TRIAGE',
+      date: new Date().toISOString().split('T')[0]
+    });
+    console.log('Test Queue entry created for John Doe.');
 
     console.log('--- Seeding Completed Successfully ---');
     console.log('Passwords for all accounts: password123');

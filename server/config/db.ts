@@ -3,7 +3,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load env variables
-dotenv.config();
+dotenv.config({
+  path: process.env.NODE_ENV === 'test' 
+    ? path.join(__dirname, '../.env.test') 
+    : path.join(__dirname, '../.env')
+});
 
 // We initialize Sequelize and automatically load all models from the models directory.
 const sequelize = new Sequelize({
