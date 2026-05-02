@@ -146,16 +146,6 @@ async function seed() {
       await Provider.create(pr as any);
     }
     console.log(`${providers.length} Providers seeded (All roles covered).`);
-    
-    // 4. Seed a Queue entry for John Doe (to enable immediate E2E testing)
-    await Queue.create({
-      patient_id: 'NCH-2026-000001', // John Doe
-      queue_number: 'A-001',
-      service_type: 'OUTPATIENT',
-      status: 'PENDING_TRIAGE',
-      date: new Date().toISOString().split('T')[0]
-    });
-    console.log('Test Queue entry created for John Doe.');
 
     console.log('--- Seeding Completed Successfully ---');
     console.log('Passwords for all accounts: password123');

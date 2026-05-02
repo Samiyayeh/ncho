@@ -75,6 +75,7 @@ Follow these steps to test the full patient journey:
 
 | Step | Role | Login Email | Action |
 | :--- | :--- | :--- | :--- |
+| **0. Join Queue**| Patient | `john.doe@example.com` | Navigate to **Queue** tab, select a service, and click **Join Queue**. |
 | **1. Triage** | Nurse | `bob.ross@ncho.gov` | Find **John Doe**, click **Start Triage**, enter vitals. |
 | **2. Consult** | Physician | `alice.walker@ncho.gov` | Find **John Doe**, click **Consult**, enter diagnosis/Rx, select **Refer to Pharmacy**. |
 | **3. Dispense** | Pharmacist | `charlie.brown@ncho.gov` | Find **John Doe**, click **Consult**, verify meds, click **Confirm Dispensing**. |
