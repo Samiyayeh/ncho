@@ -1,11 +1,13 @@
-import { Phone, MapPin, Calendar, Activity, FileText, Clock, Shield } from "lucide-react";
-import { Link, useParams } from "react-router";
+import { Phone, MapPin, Calendar, Activity, FileText, Clock, Shield, Pill, ArrowLeft } from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router";
 import { useState, useEffect } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
 import { api } from "../api/client";
 
 export function ClinicalView() {
   const { patientId } = useParams();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const [activeTab, setActiveTab] = useState("summary");
   const [patient, setPatient] = useState<any>(null);
   const [encounters, setEncounters] = useState<any[]>([]);
@@ -47,14 +49,23 @@ export function ClinicalView() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Patient Record View</h1>
-            <p className="text-gray-600">Complete medical history and records</p>
+            <p className="text-gray-600">Reviewing historical medical data</p>
           </div>
-          <Link
-            to={`/provider/itr?patient=${patientId}`}
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition"
-          >
-            New Encounter
-          </Link>
+          <div className="flex items-center gap-4">
+            {returnTo && (
+              <Link
+                to={`/provider/encounter/${returnTo}`}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-bold shadow-lg shadow-blue-200"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Return to Active Consultation
+              </Link>
+            )}
+            <div className="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm font-bold flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              Active visits must be started via Live Queue
+            </div>
+          </div>
         </div>
 
         {/* Patient Header Profile */}
@@ -135,6 +146,7 @@ export function ClinicalView() {
               {[
                 { key: "summary", label: "Summary", icon: Activity },
                 { key: "visits", label: "Visit History", icon: Clock },
+                { key: "medications", label: "Medications", icon: Pill },
                 { key: "records", label: "Medical Records", icon: FileText },
               ].map(({ key, label, icon: Icon }) => (
                 <button
@@ -216,6 +228,49 @@ export function ClinicalView() {
                     </div>
                   ))
                 )}
+              </div>
+            )}
+
+            {/* Medications Tab */}
+            {activeTab === "medications" && (
+              <div className="space-y-6">
+                {(() => {
+                  const visitsWithRx = encounters.filter(enc => enc.Prescriptions && enc.Prescriptions.length > 0);
+
+                  if (visitsWithRx.length === 0) {
+                    return <p className="text-gray-500 text-center py-12 italic">No electronic prescriptions found.</p>;
+                  }
+
+                  return visitsWithRx.map((enc: any) => (
+                    <div key={enc.encounter_id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                      <div className="bg-gray-50 px-6 py-3 border-b flex justify-between items-center">
+                        <div>
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Visit Date</p>
+                          <p className="font-bold text-gray-900">{formatDate(enc.encounter_date)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Provider</p>
+                          <p className="text-sm font-medium text-blue-600">
+                            {enc.Provider ? `Dr. ${enc.Provider.last_name}` : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="p-6 space-y-4">
+                        {enc.Prescriptions.map((rx: any, idx: number) => (
+                          <div key={idx} className={`flex justify-between items-center ${idx !== 0 ? 'pt-4 border-t border-gray-50' : ''}`}>
+                            <div>
+                              <p className="font-bold text-gray-800">{rx.medication_name}</p>
+                              <p className="text-sm text-gray-500">{rx.dosage} • {rx.frequency}</p>
+                            </div>
+                            <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-bold">
+                              {rx.duration_days} Days
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
             )}
 

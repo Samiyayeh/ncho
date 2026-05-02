@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { registerPatient, registerProvider, login } from '../controllers/authController';
+import { registerPatient, login } from '../controllers/authController';
 import { auditLogger } from '../middlewares/auditLogger';
 
 const router = Router();
@@ -8,7 +8,6 @@ const router = Router();
 // but we could if we modified the logger. We will primarily log post-login actions.
 
 router.post('/register/patient', registerPatient);
-router.post('/register/provider', registerProvider);
 
 // We can add the audit logger to login purely to test if we want, 
 // but since it requires req.user (from auth token), it's meant for protected routes.

@@ -3,6 +3,7 @@ import { Encounter } from './Encounter';
 import { MedicalRecord } from './MedicalRecord';
 import { QrAccessToken } from './QrAccessToken';
 import { AuditLog } from './AuditLog';
+import { Queue } from './Queue';
 
 @Table({
   tableName: 'PATIENTS',
@@ -88,4 +89,7 @@ export class Patient extends Model {
 
   @HasMany(() => AuditLog)
   declare audit_logs: AuditLog[];
+
+  @HasMany(() => Queue)
+  declare queues: Queue[];
 }

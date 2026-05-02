@@ -145,12 +145,14 @@ export function Login() {
             <Link to="/" className="block text-sm text-blue-600 hover:underline">
               Forgot Password?
             </Link>
-            <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-blue-600 hover:underline font-bold">
-                Register here
-              </Link>
-            </p>
+            {role === "patient" && (
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <Link to="/register" className="text-blue-600 hover:underline font-bold">
+                  Register here
+                </Link>
+              </p>
+            )}
             <Link to="/" className="block text-sm text-gray-600 hover:underline">
               Back to Home
             </Link>

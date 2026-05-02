@@ -48,6 +48,19 @@ export class Provider extends Model {
   @Column(DataType.STRING(20))
   declare contact_number: string;
 
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: true // Optional for non-clinical roles
+  })
+  declare prc_license_number: string;
+
+  @Column({
+    type: DataType.ENUM('TRIAGE_NURSE', 'PHYSICIAN', 'PHARMACIST', 'DENTIST', 'SOCIAL_WORKER'),
+    allowNull: false,
+    defaultValue: 'PHYSICIAN'
+  })
+  declare role_type: string;
+
   @HasMany(() => Encounter)
   declare encounters: Encounter[];
 

@@ -7,6 +7,8 @@ import path from 'path';
 import authRoutes from './routes/authRoutes';
 import patientRoutes from './routes/patientRoutes';
 import providerRoutes from './routes/providerRoutes';
+import queueRoutes from './routes/queueRoutes';
+import encounterRoutes from './routes/encounterRoutes';
 
 dotenv.config();
 
@@ -25,6 +27,8 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api/provider', providerRoutes);
+app.use('/api/queue', queueRoutes);
+app.use('/api/encounters', encounterRoutes);
 
 // Basic route for testing
 app.get('/', (req: Request, res: Response) => {
@@ -35,7 +39,7 @@ app.get('/', (req: Request, res: Response) => {
 const startServer = async () => {
   await testConnection();
     // Synchronize Sequelize models with the database
-    // Disabled { alter: true } temporarily to avoid MySQL deadlocks from orphaned connections
+    // Architectural sync complete. Returning to standard sync for stability.
     await sequelize.sync();
   console.log('Sequelize models synchronized with the database.');
 

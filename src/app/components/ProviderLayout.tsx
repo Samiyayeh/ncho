@@ -25,7 +25,11 @@ export function ProviderLayout({ children }: ProviderLayoutProps) {
     { path: "/provider/dashboard", icon: Home, label: "Dashboard" },
     { path: "/provider", icon: Users, label: "Patient Directory" },
     { path: "/provider/upload", icon: UploadCloud, label: "Upload Records" },
-    { path: "/admin/audit-logs", icon: FileText, label: "System Logs" },
+    { 
+      path: "/admin/audit-logs", 
+      icon: FileText, 
+      label: user?.role === 'ADMIN' ? "System Audit Logs" : "My Activity Log" 
+    },
   ];
 
   const isActive = (path: string) => {

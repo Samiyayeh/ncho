@@ -13,8 +13,16 @@ export function AdminAuditLogs() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
+        const user = JSON.parse(localStorage.getItem('ncho_user') || '{}');
         const data = await api.get('/provider/audit-logs');
-        setLogs(data);
+        
+        // If not an admin, only show logs where provider_id matches current user's ID
+        if (user.role !== 'ADMIN') {
+          const personalLogs = data.filter((l: any) => String(l.provider_id) === String(user.user_id));
+          setLogs(personalLogs);
+        } else {
+          setLogs(data);
+        }
       } catch (error) {
         console.error("Failed to fetch audit logs", error);
       } finally {
@@ -50,8 +58,10 @@ export function AdminAuditLogs() {
         {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">System Audit Logs</h1>
-            <p className="text-gray-600">Data Privacy Act Compliance Monitor</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {JSON.parse(localStorage.getItem('ncho_user') || '{}').role === 'ADMIN' ? 'System Audit Logs' : 'My Activity Log'}
+            </h1>
+            <p className="text-gray-600">Your personalized Data Privacy Act compliance trail</p>
           </div>
         </div>
 

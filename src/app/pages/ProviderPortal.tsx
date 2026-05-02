@@ -43,7 +43,7 @@ export function ProviderPortal() {
   const handleScanSuccess = async (decodedText: string) => {
     try {
       setShowScanner(false);
-      const res = await api.post("/provider/scan-qr", { body: JSON.stringify({ token_string: decodedText }) });
+      const res = await api.post("/provider/scan-qr", { token_string: decodedText });
       if (res && res.patient_id) {
         navigate(`/provider/clinical/${res.patient_id}`);
       }
@@ -128,9 +128,9 @@ export function ProviderPortal() {
               </div>
               <button
                 type="submit"
-                className="block w-full px-6 py-3 bg-teal-500 text-white rounded-lg text-center hover:bg-teal-600 transition font-bold"
+                className="block w-full px-6 py-3 bg-teal-500 text-white rounded-xl text-center hover:bg-teal-600 transition font-bold shadow-lg shadow-teal-100"
               >
-                Access Patient Record
+                View Medical History
               </button>
             </form>
           </div>

@@ -24,8 +24,8 @@ export class MedicalRecord extends Model {
   })
   declare patient_id: string;
 
-  @BelongsTo(() => Patient, { onDelete: 'CASCADE' })
-  declare patient: Patient;
+  @BelongsTo(() => Patient, { as: 'Patient', onDelete: 'CASCADE' })
+  declare Patient: Patient;
 
   @ForeignKey(() => Provider)
   @Column({
@@ -34,8 +34,8 @@ export class MedicalRecord extends Model {
   })
   declare provider_id: string;
 
-  @BelongsTo(() => Provider, { onDelete: 'CASCADE' })
-  declare provider: Provider;
+  @BelongsTo(() => Provider, { as: 'Provider', onDelete: 'CASCADE' })
+  declare Provider: Provider;
 
   @ForeignKey(() => Encounter)
   @Column(DataType.INTEGER)

@@ -1,5 +1,6 @@
 import { Activity, Heart, FileText, Clock, ShieldAlert } from "lucide-react";
 import QRCode from "react-qr-code";
+import { Link } from "react-router";
 import { PatientBottomNav } from "../components/PatientBottomNav";
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
@@ -8,19 +9,22 @@ export function PatientPassport() {
   const [patient, setPatient] = useState<any>(null);
   const [encounters, setEncounters] = useState<any[]>([]);
   const [qrToken, setQrToken] = useState<string>("");
+  const [activeQueue, setActiveQueue] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileData, encounterData, qrData] = await Promise.all([
+        const [profileData, encounterData, qrData, queueData] = await Promise.all([
           api.get('/patient/profile'),
           api.get('/patient/encounters'),
-          api.get('/patient/qr-token')
+          api.get('/patient/qr-token'),
+          api.get('/patient/active-queue')
         ]);
         setPatient(profileData);
         setEncounters(encounterData);
         setQrToken(qrData.token_string);
+        setActiveQueue(queueData);
       } catch (error) {
         console.error("Failed to fetch passport data", error);
       } finally {
@@ -51,6 +55,34 @@ export function PatientPassport() {
       </header>
 
       <div className="max-w-md mx-auto px-4 space-y-4">
+        {/* Queue Action Card */}
+        {patient.account_status === 'ACTIVE' && (
+          <Link 
+            to="/patient/queue" 
+            className={`flex items-center justify-between p-6 rounded-2xl shadow-lg transition-all hover:scale-[1.02] text-white ${
+              activeQueue ? 'bg-gradient-to-r from-teal-600 to-teal-700 shadow-teal-100' : 'bg-gradient-to-r from-blue-600 to-blue-700 shadow-blue-200'
+            }`}
+          >
+            <div>
+              <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
+                {activeQueue ? `Active: ${activeQueue.queue_number}` : 'Join Clinic Queue'}
+                <Clock className={`w-5 h-5 ${activeQueue ? 'animate-none' : 'animate-pulse'}`} />
+              </h3>
+              <p className="text-blue-50 text-sm">
+                {activeQueue ? `Status: ${activeQueue.status.replace('_', ' ')}` : 'Secure your spot for consultation'}
+              </p>
+            </div>
+            {activeQueue ? (
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold uppercase opacity-60 mb-1">Position</span>
+                <span className="text-2xl font-black">#?</span> 
+              </div>
+            ) : (
+              <Activity className="w-8 h-8 opacity-50" />
+            )}
+          </Link>
+        )}
+
         {/* QR Code Card or Verification Warning */}
         {patient.account_status === 'UNVERIFIED' ? (
           <div className="bg-red-50 border-2 border-red-200 rounded-xl shadow-md p-6">

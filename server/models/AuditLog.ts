@@ -18,15 +18,15 @@ export class AuditLog extends Model {
   @Column(DataType.STRING(50))
   declare provider_id: string;
 
-  @BelongsTo(() => Provider, { onDelete: 'SET NULL' })
-  declare provider: Provider;
+  @BelongsTo(() => Provider, { as: 'Provider', onDelete: 'SET NULL' })
+  declare Provider: Provider;
 
   @ForeignKey(() => Patient)
   @Column(DataType.STRING(50))
   declare patient_id: string;
 
-  @BelongsTo(() => Patient, { onDelete: 'SET NULL' })
-  declare patient: Patient;
+  @BelongsTo(() => Patient, { as: 'Patient', onDelete: 'SET NULL' })
+  declare Patient: Patient;
 
   @Column({
     type: DataType.STRING(255),

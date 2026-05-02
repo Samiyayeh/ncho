@@ -10,6 +10,10 @@ export function PatientRegistration() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState<"Male" | "Female" | "Other" | "">("");
+  const [contactNumber, setContactNumber] = useState("");
+  const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -22,13 +26,22 @@ export function PatientRegistration() {
       return;
     }
 
+    if (!dateOfBirth || !gender || !contactNumber || !address) {
+      setError("Please fill in all required demographic fields.");
+      return;
+    }
+
     setLoading(true);
     try {
       await api.post('/auth/register/patient', {
         first_name: firstName,
         last_name: lastName,
         email,
-        password
+        password,
+        date_of_birth: dateOfBirth,
+        gender,
+        contact_number: contactNumber,
+        address
       });
       setStep("unverified");
     } catch (err: any) {
@@ -39,6 +52,7 @@ export function PatientRegistration() {
   };
 
   if (step === "unverified") {
+    // ... (Keep existing unverified view, it uses email which is still available)
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 pb-8">
         {/* Header */}
@@ -48,7 +62,7 @@ export function PatientRegistration() {
               <Heart className="w-6 h-6 text-blue-600" />
               <h1 className="text-lg font-bold text-gray-900">NCHO Patient-Link</h1>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Welcome, {email.split('@')[0]}</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Welcome, {firstName}</h2>
             <p className="text-sm text-gray-600">Your account is pending verification</p>
           </div>
         </header>
@@ -106,27 +120,16 @@ export function PatientRegistration() {
                 <p className="font-bold text-gray-900">{email}</p>
               </div>
               <div>
+                <p className="text-gray-600">Full Name</p>
+                <p className="font-bold text-gray-900">{firstName} {lastName}</p>
+              </div>
+              <div>
                 <p className="text-gray-600">Account Status</p>
                 <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold">
                   Unverified - Pending Activation
                 </span>
               </div>
-              <div>
-                <p className="text-gray-600">Created Date</p>
-                <p className="font-bold text-gray-900">{new Date().toLocaleDateString()}</p>
-              </div>
             </div>
-          </div>
-
-          {/* Next Steps */}
-          <div className="bg-blue-50 border-l-4 border-blue-600 rounded-lg p-4">
-            <h4 className="font-bold text-blue-900 mb-2">Next Steps</h4>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
-              <li>Prepare your valid government-issued ID</li>
-              <li>Visit NCHO triage desk during office hours (Mon-Fri, 8AM-5PM)</li>
-              <li>Request account verification for NCHO Patient-Link</li>
-              <li>Your Health Passport will be activated within 24 hours</li>
-            </ol>
           </div>
 
           <Link
@@ -141,8 +144,8 @@ export function PatientRegistration() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center py-12 px-4">
+      <div className="w-full max-w-2xl">
         {/* Back Navigation */}
         <Link
           to="/login"
@@ -170,8 +173,8 @@ export function PatientRegistration() {
             <h2 className="text-2xl font-bold text-gray-900">Patient Registration</h2>
           </div>
 
-          <p className="text-sm text-gray-600 text-center mb-6">
-            Create your shell account to begin the verification process
+          <p className="text-sm text-gray-600 text-center mb-8">
+            Please provide your accurate information to begin the secure verification process.
           </p>
 
           {/* Error Message */}
@@ -182,9 +185,9 @@ export function PatientRegistration() {
           )}
 
           {/* Registration Form */}
-          <form onSubmit={handleCreateAccount} className="space-y-4 mb-6">
-            <div className="flex gap-4">
-              <div className="flex-1">
+          <form onSubmit={handleCreateAccount} className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">First Name</label>
                 <input
                   type="text"
@@ -195,7 +198,7 @@ export function PatientRegistration() {
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
                 />
               </div>
-              <div className="flex-1">
+              <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Last Name</label>
                 <input
                   type="text"
@@ -208,48 +211,102 @@ export function PatientRegistration() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.email@example.com"
-                required
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
-              />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Date of Birth</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Gender</label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as any)}
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Contact Number</label>
+                <input
+                  type="tel"
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  placeholder="09123456789"
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create a strong password"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+              <label className="block text-sm font-bold text-gray-700 mb-2">Complete Address</label>
+              <textarea
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Street, Barangay, Naga City, Camarines Sur"
+                required
+                rows={2}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none resize-none"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Confirm Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter your password"
-                required
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
-              />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+                />
+              </div>
             </div>
 
             {/* Create Account Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition mb-4 disabled:opacity-50 mt-4"
+              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg font-bold hover:opacity-90 transition disabled:opacity-50 mt-4 text-lg shadow-lg"
             >
-              {loading ? "Creating..." : "Create Shell Account"}
+              {loading ? "Creating Account..." : "Register My Account"}
             </button>
           </form>
 

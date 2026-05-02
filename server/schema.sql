@@ -17,6 +17,10 @@ CREATE TABLE IF NOT EXISTS PATIENTS (
     allergies TEXT,
     contact_number VARCHAR(20),
     address TEXT,
+    account_status ENUM('UNVERIFIED', 'ACTIVE') NOT NULL DEFAULT 'UNVERIFIED',
+    voter_registered BOOLEAN DEFAULT NULL,
+    household_head BOOLEAN DEFAULT NULL,
+    chronic_conditions TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

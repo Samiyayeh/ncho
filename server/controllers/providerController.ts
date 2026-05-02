@@ -30,17 +30,17 @@ export const scanQr = async (req: AuthRequest, res: Response) => {
 
     // Log the access event since provider verified physically
     await AuditLog.create({
-      provider_id: req.user?.id || 'Unknown',
+      provider_id: req.user?.id || null,
       patient_id: token.patient_id,
-      action: 'Verified Patient via QR Code scan',
+      action_taken: 'Verified Patient via QR Code scan',
       endpoint_accessed: '/api/provider/scan-qr',
       ip_address: req.ip || req.socket.remoteAddress || 'Unknown'
     });
 
     res.status(200).json({ patient_id: token.patient_id });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error scanning QR:', error);
-    res.status(500).json({ error: 'Internal server error.' });
+    res.status(500).json({ error: error.message || 'Internal server error.' });
   }
 };
 
@@ -58,7 +58,7 @@ export const patientLookup = async (req: AuthRequest, res: Response) => {
           { patient_id: query }
         ]
       },
-      attributes: ['patient_id', 'email', 'first_name', 'last_name', 'account_status', 'created_at']
+      attributes: ['patient_id', 'email', 'first_name', 'last_name', 'account_status', 'created_at', 'date_of_birth', 'address']
     });
 
     if (!patient) {
@@ -105,19 +105,19 @@ export const verifyPatient = async (req: AuthRequest, res: Response) => {
     }, { transaction });
 
     await AuditLog.create({
-      provider_id: req.user?.id || 'Unknown',
+      provider_id: req.user?.id || null,
       patient_id: patient.patient_id,
-      action: 'Physically verified patient identity and activated Passport',
+      action_taken: 'Physically verified patient identity and activated Passport',
       endpoint_accessed: '/api/provider/verify-patient',
       ip_address: req.ip || req.socket.remoteAddress || 'Unknown'
     }, { transaction });
 
     await transaction.commit();
     res.status(200).json({ message: 'Patient verified and activated successfully' });
-  } catch (error) {
-    await transaction.rollback();
+  } catch (error: any) {
+    if (transaction) await transaction.rollback();
     console.error('Error verifying patient:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 };
 
@@ -215,7 +215,7 @@ export const getMedicalRecords = async (req: AuthRequest, res: Response) => {
     }
     const records = await MedicalRecord.findAll({
       where: { patient_id: patientId },
-      include: [{ model: Provider, attributes: ['first_name', 'last_name'] }],
+      include: [{ model: Provider, as: 'Provider', attributes: ['first_name', 'last_name'] }],
       order: [['created_at', 'DESC']]
     });
     res.status(200).json(records);
@@ -253,8 +253,8 @@ export const getAdminAuditLogs = async (req: AuthRequest, res: Response) => {
   try {
     const logs = await AuditLog.findAll({
       include: [
-        { model: Provider, attributes: ['first_name', 'last_name'] },
-        { model: Patient, attributes: ['first_name', 'last_name'] }
+        { model: Provider, as: 'Provider', attributes: ['first_name', 'last_name'] },
+        { model: Patient, as: 'Patient', attributes: ['first_name', 'last_name'] }
       ],
       order: [['timestamp', 'DESC']],
       limit: 200
@@ -274,7 +274,10 @@ export const getPatientEncounters = async (req: AuthRequest, res: Response) => {
     }
     const encounters = await Encounter.findAll({
       where: { patient_id: patientId },
-      include: [{ model: Provider, attributes: ['first_name', 'last_name', 'specialty'] }],
+      include: [
+        { model: Provider, as: 'Provider', attributes: ['first_name', 'last_name', 'specialty'] },
+        { model: Prescription, as: 'Prescriptions' }
+      ],
       order: [['encounter_date', 'DESC']]
     });
     res.status(200).json(encounters);
