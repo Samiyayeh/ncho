@@ -89,4 +89,11 @@ export class Encounter extends Model {
 
   @HasMany(() => Referral)
   declare referrals: Referral[];
+
+  @Column({
+    type: DataType.JSON,
+    allowNull: true,
+    defaultValue: {}
+  })
+  declare specialized_data: any;
 }

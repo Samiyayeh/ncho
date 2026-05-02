@@ -139,6 +139,17 @@ async function seed() {
         contact_number: '09123456785',
         prc_license_number: 'RSW-665544',
         role_type: 'SOCIAL_WORKER'
+      },
+      {
+        provider_id: 'PRV-2026-1006',
+        first_name: 'Sarah',
+        last_name: 'Connor',
+        specialty: 'Program Specialist (TB/YAKAP)',
+        email: 'sarah.connor@ncho.gov',
+        password_hash: passwordHash,
+        contact_number: '09123456786',
+        prc_license_number: 'SPE-223344',
+        role_type: 'SPECIALIST'
       }
     ];
 
