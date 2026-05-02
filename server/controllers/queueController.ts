@@ -44,7 +44,7 @@ export const updateQueueStatus = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const queue = await Queue.findByPk(id);
+    const queue = await Queue.findByPk(id as string);
     if (!queue) return res.status(404).json({ error: 'Queue record not found.' });
 
     await queue.update({ status });

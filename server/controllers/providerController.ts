@@ -85,7 +85,7 @@ export const verifyPatient = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Patient ID required' });
     }
 
-    const patient = await Patient.findByPk(patient_id, { transaction });
+    const patient = await Patient.findByPk(patient_id as string, { transaction });
     if (!patient) {
       await transaction.rollback();
       return res.status(404).json({ error: 'Patient not found' });

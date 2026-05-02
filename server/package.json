@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "nodemon server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "seed": "ts-node seed.ts",
+    "seed:test": "cross-env NODE_ENV=test ts-node seed.ts",
+    "dev:test": "cross-env NODE_ENV=test nodemon server.ts"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +34,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.1.0",
     "@types/node": "^25.6.0",
+    "cross-env": "^10.1.0",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
