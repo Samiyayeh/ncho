@@ -8,7 +8,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "ts-node seed.ts",
+    "seed:analytics": "ts-node seed-analytics.ts",
     "seed:test": "cross-env NODE_ENV=test ts-node seed.ts",
+    "seed:analytics:test": "cross-env NODE_ENV=test ts-node seed-analytics.ts",
     "dev:test": "cross-env NODE_ENV=test nodemon server.ts"
   },
   "keywords": [],

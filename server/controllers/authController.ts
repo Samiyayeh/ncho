@@ -8,7 +8,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_change_me';
 
 export const registerPatient = async (req: Request, res: Response) => {
   try {
-    const { first_name, last_name, email, password, date_of_birth, gender, contact_number, address } = req.body;
+    const { 
+      first_name, last_name, email, password, date_of_birth, gender, contact_number, address,
+      voter_registered, household_head, blood_type, allergies, chronic_conditions
+    } = req.body;
 
     const existingPatient = await Patient.findOne({ where: { email } });
     if (existingPatient) {
@@ -19,7 +22,12 @@ export const registerPatient = async (req: Request, res: Response) => {
     const patient_id = `NCH-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
     await Patient.create({
-      patient_id, first_name, last_name, email, password_hash, date_of_birth, gender, contact_number, address
+      patient_id, first_name, last_name, email, password_hash, date_of_birth, gender, contact_number, address,
+      voter_registered: voter_registered === 'yes' || voter_registered === true,
+      household_head: household_head === 'yes' || household_head === true,
+      blood_type,
+      allergies: Array.isArray(allergies) ? allergies.join(', ') : allergies,
+      chronic_conditions
     });
 
     res.status(201).json({ message: 'Patient registered successfully', patient_id });

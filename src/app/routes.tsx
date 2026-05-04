@@ -7,6 +7,7 @@ import { PatientQueue } from "./pages/PatientQueue";
 import { PatientProfile } from "./pages/PatientProfile";
 import { ProviderPortal } from "./pages/ProviderPortal";
 import { ProviderDashboard } from "./pages/ProviderDashboard";
+import { ProviderAnalyticsDashboard } from "./pages/ProviderAnalyticsDashboard";
 import { ClinicalView } from "./pages/ClinicalView";
 import { DigitalITR } from "./pages/DigitalITR";
 import { MedicalRecords } from "./pages/MedicalRecords";
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
     children: [
       { path: "/provider", Component: ProviderPortal },
       { path: "/provider/dashboard", Component: ProviderDashboard },
+      { path: "/provider/analytics", Component: ProviderAnalyticsDashboard },
       { path: "/provider/encounter/:queueId", Component: EncounterWorkspace },
       { path: "/provider/clinical/:patientId", Component: ClinicalView },
       { path: "/provider/itr", Component: DigitalITR },

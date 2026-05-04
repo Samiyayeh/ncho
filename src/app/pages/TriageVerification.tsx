@@ -46,6 +46,8 @@ export function TriageVerification() {
         setDateOfBirth("");
       }
       setAddress(res.address || "");
+      setVoterRegistered(res.voter_registered ? "yes" : "no");
+      setHouseholdHead(res.household_head ? "yes" : "no");
       setAccountFound(true);
       if (res.account_status === 'ACTIVE') {
         toast.info("This patient's account is already ACTIVE.");
@@ -67,8 +69,6 @@ export function TriageVerification() {
           last_name: lastName,
           date_of_birth: dateOfBirth,
           address,
-          voter_registered: voterRegistered,
-          household_head: householdHead,
           blood_type: bloodType,
           allergies,
           chronic_conditions: chronicConditions
@@ -264,68 +264,23 @@ export function TriageVerification() {
               </div>
             </div>
 
-            {/* LGU Tracking Fields with Radio Buttons */}
-            <div className="grid md:grid-cols-2 gap-6 mt-6">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <label className="block text-sm font-bold text-gray-700 mb-3">
-                  Voter Registered <span className="text-red-600">*</span>
-                </label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="voterRegistered"
-                      value="yes"
-                      checked={voterRegistered === "yes"}
-                      onChange={(e) => setVoterRegistered(e.target.value as "yes")}
-                      className="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-2 focus:ring-blue-600"
-                    />
-                    <span className="text-gray-900 font-bold">Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="voterRegistered"
-                      value="no"
-                      checked={voterRegistered === "no"}
-                      onChange={(e) => setVoterRegistered(e.target.value as "no")}
-                      className="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-2 focus:ring-blue-600"
-                    />
-                    <span className="text-gray-900 font-bold">No</span>
-                  </label>
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                LGU Status
+              </label>
+              <div className="w-full px-4 py-3 border-2 border-gray-100 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-xs uppercase tracking-wider block mb-1 text-gray-400">Voter Registered</span>
+                  <span className="font-bold text-gray-900">{voterRegistered === "yes" ? "Yes" : voterRegistered === "no" ? "No" : "—"}</span>
                 </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <label className="block text-sm font-bold text-gray-700 mb-3">
-                  Household Head <span className="text-red-600">*</span>
-                </label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="householdHead"
-                      value="yes"
-                      checked={householdHead === "yes"}
-                      onChange={(e) => setHouseholdHead(e.target.value as "yes")}
-                      className="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-2 focus:ring-blue-600"
-                    />
-                    <span className="text-gray-900 font-bold">Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="householdHead"
-                      value="no"
-                      checked={householdHead === "no"}
-                      onChange={(e) => setHouseholdHead(e.target.value as "no")}
-                      className="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-2 focus:ring-blue-600"
-                    />
-                    <span className="text-gray-900 font-bold">No</span>
-                  </label>
+                <div>
+                  <span className="font-bold text-xs uppercase tracking-wider block mb-1 text-gray-400">Household Head</span>
+                  <span className="font-bold text-gray-900">{householdHead === "yes" ? "Yes" : householdHead === "no" ? "No" : "—"}</span>
                 </div>
               </div>
             </div>
+
+
           </div>
 
           {/* Section 3: Baseline Medical Encoding */}
@@ -435,7 +390,7 @@ export function TriageVerification() {
               </Link>
               <button
                 onClick={handleActivate}
-                disabled={!verificationChecked || !firstName || !lastName || !dateOfBirth || !address || !voterRegistered || !householdHead || !bloodType || isVerifying}
+                disabled={!verificationChecked || !firstName || !lastName || !dateOfBirth || !address || !bloodType || isVerifying}
                 className="px-8 py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isVerifying && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}

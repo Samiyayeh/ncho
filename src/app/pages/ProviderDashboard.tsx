@@ -4,6 +4,18 @@ import { ProviderLayout } from "../components/ProviderLayout";
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 
+const calculateAge = (dob: string | undefined) => {
+  if (!dob) return 'N/A';
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 export function ProviderDashboard() {
   const [queues, setQueues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,6 +150,7 @@ export function ProviderDashboard() {
                 <tr className="border-b-2 border-gray-100">
                   <th className="pb-3 text-sm font-bold text-gray-500 uppercase">No.</th>
                   <th className="pb-3 text-sm font-bold text-gray-500 uppercase">Patient Name</th>
+                  <th className="pb-3 text-sm font-bold text-gray-500 uppercase">Demographics</th>
                   <th className="pb-3 text-sm font-bold text-gray-500 uppercase">Service</th>
                   <th className="pb-3 text-sm font-bold text-gray-500 uppercase">Status</th>
                   <th className="pb-3 text-sm font-bold text-gray-500 uppercase text-right">Actions</th>
@@ -161,6 +174,10 @@ export function ProviderDashboard() {
                       <td className="py-4">
                         <div className="font-bold text-gray-900">{q.Patient?.first_name} {q.Patient?.last_name}</div>
                         <div className="text-xs text-gray-500 uppercase tracking-tighter">{q.patient_id}</div>
+                      </td>
+                      <td className="py-4">
+                        <div className="text-sm font-bold text-gray-900">{calculateAge(q.Patient?.date_of_birth)} yrs</div>
+                        <div className="text-xs text-gray-500">{q.Patient?.gender || 'N/A'}</div>
                       </td>
                       <td className="py-4">
                         <span className="text-sm font-medium text-gray-700">{q.service_type.replace('_', ' ')}</span>

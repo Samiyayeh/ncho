@@ -14,6 +14,8 @@ export function PatientRegistration() {
   const [gender, setGender] = useState<"Male" | "Female" | "Other" | "">("");
   const [contactNumber, setContactNumber] = useState("");
   const [address, setAddress] = useState("");
+  const [voterRegistered, setVoterRegistered] = useState<"yes" | "no" | "">("");
+  const [householdHead, setHouseholdHead] = useState<"yes" | "no" | "">("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,8 +28,8 @@ export function PatientRegistration() {
       return;
     }
 
-    if (!dateOfBirth || !gender || !contactNumber || !address) {
-      setError("Please fill in all required demographic fields.");
+    if (!dateOfBirth || !gender || !contactNumber || !address || !voterRegistered || !householdHead) {
+      setError("Please fill in all required demographic and LGU fields.");
       return;
     }
 
@@ -41,7 +43,9 @@ export function PatientRegistration() {
         date_of_birth: dateOfBirth,
         gender,
         contact_number: contactNumber,
-        address
+        address,
+        voter_registered: voterRegistered,
+        household_head: householdHead
       });
       setStep("unverified");
     } catch (err: any) {
@@ -273,6 +277,69 @@ export function PatientRegistration() {
                 rows={2}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none resize-none"
               />
+            </div>
+
+            {/* LGU Specific Information */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Registered Voter in Naga City? <span className="text-red-600">*</span>
+                </label>
+                <div className="flex gap-6 w-full px-4 py-3 border-2 border-gray-300 rounded-lg">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="voterRegistered"
+                      value="yes"
+                      checked={voterRegistered === "yes"}
+                      onChange={(e) => setVoterRegistered(e.target.value as "yes")}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-600"
+                    />
+                    <span className="text-gray-900 font-bold text-sm">Yes</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="voterRegistered"
+                      value="no"
+                      checked={voterRegistered === "no"}
+                      onChange={(e) => setVoterRegistered(e.target.value as "no")}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-600"
+                    />
+                    <span className="text-gray-900 font-bold text-sm">No</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Household Head? <span className="text-red-600">*</span>
+                </label>
+                <div className="flex gap-6 w-full px-4 py-3 border-2 border-gray-300 rounded-lg">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="householdHead"
+                      value="yes"
+                      checked={householdHead === "yes"}
+                      onChange={(e) => setHouseholdHead(e.target.value as "yes")}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-600"
+                    />
+                    <span className="text-gray-900 font-bold text-sm">Yes</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="householdHead"
+                      value="no"
+                      checked={householdHead === "no"}
+                      onChange={(e) => setHouseholdHead(e.target.value as "no")}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-600"
+                    />
+                    <span className="text-gray-900 font-bold text-sm">No</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">

@@ -43,9 +43,11 @@ Ensure you have **MySQL** installed and running.
     ```
 
 ### 3. Seeding the Database
-To populate the system with test patients and clinical providers:
-*   **Development Seed:** `npm run seed` (Wipes `ncho_patient_link`)
-*   **Test Seed:** `npm run seed:test` (Wipes `ncho_test`)
+To populate the system with test data:
+*   **Basic Seed:** `npm run seed` (Wipes `ncho_patient_link`, creates base providers/patients)
+*   **Basic Test Seed:** `npm run seed:test` (Wipes `ncho_test`)
+*   **Analytics Seed:** `npm run seed:analytics` (Generates 150+ patients/encounters for Dashboard testing)
+*   **Analytics Test Seed:** `npm run seed:analytics:test` (Targets `ncho_test` with massive data)
 
 ### 4. Frontend Setup
 1.  **Navigate to root:** `cd ..`
@@ -111,3 +113,5 @@ Follow these steps to test the full patient journey:
 *   `npm run dev:test`: Starts backend using the test database.
 *   `npm run seed`: Resets and seeds the dev database.
 *   `npm run seed:test`: Resets and seeds the test database.
+*   `npm run seed:analytics`: Generates 150+ patients/encounters for Dashboard testing.
+*   `npm run seed:analytics:test`: Targets the test database with massive data for visualization.
