@@ -46,4 +46,10 @@ export class Prescription extends Model {
     allowNull: false
   })
   declare duration_days: number;
+
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: false
+  })
+  declare prescriber_prc_number: string;
 }

@@ -1,7 +1,7 @@
 import { Heart, Lock, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
-import { api } from "../api/client";
+import { api, isTestMode } from "../api/client";
 
 export function Login() {
   const [role, setRole] = useState<"patient" | "provider">("patient");
@@ -37,7 +37,16 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex flex-col items-center justify-center px-4">
+      {isTestMode && (
+        <div className="w-full max-w-md mb-6 bg-red-600 text-white px-4 py-3 rounded-xl flex items-center gap-3 shadow-xl animate-pulse border-b-4 border-red-800">
+          <AlertCircle size={24} />
+          <div className="flex flex-col">
+            <span className="font-black text-xs uppercase tracking-tighter">Test Environment</span>
+            <span className="text-[10px] opacity-90 uppercase font-medium">Port 5001 Active</span>
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-md">
         {/* Logo Header */}
         <div className="text-center mb-8">

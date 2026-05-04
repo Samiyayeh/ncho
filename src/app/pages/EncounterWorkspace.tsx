@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { ArrowLeft, Save, Heart, Activity, Thermometer, Weight, Clipboard, CheckCircle, Pill, X, Shield } from "lucide-react";
+import { ArrowLeft, Save, Heart, Activity, Thermometer, Weight, Clipboard, CheckCircle, Pill, X, Shield, User } from "lucide-react";
 import { ProviderLayout } from "../components/ProviderLayout";
 import { api } from "../api/client";
 
@@ -23,14 +23,22 @@ export function EncounterWorkspace() {
     bp_diastolic: "",
     temperature: "",
     heart_rate: "",
-    weight: ""
+    weight: "",
+    head_circumference: "", // New for YAKAP
+    weeks_gestation: ""    // New for YAKAP
+  });
+  const [dispensingData, setDispensingData] = useState({
+    quantity: "",
+    notes: ""
   });
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [clinical, setClinical] = useState({
     chief_complaint: "",
     diagnosis: "",
     treatment_plan: "",
-    next_step: "COMPLETED"
+    next_step: "COMPLETED",
+    dental_procedure: "", // New field for DENTAL
+    dots_meds: [] as string[] // New field for TB_DOTS
   });
 
   const user = JSON.parse(localStorage.getItem('ncho_user') || '{}');
@@ -93,7 +101,9 @@ export function EncounterWorkspace() {
         bp_systolic: parseInt(vitals.bp_systolic),
         bp_diastolic: parseInt(vitals.bp_diastolic),
         temperature: parseFloat(vitals.temperature),
-        weight_kg: parseFloat(vitals.weight)
+        weight_kg: parseFloat(vitals.weight),
+        head_circumference: parseFloat(vitals.head_circumference) || null,
+        weeks_gestation: parseInt(vitals.weeks_gestation) || null
       });
       alert("Triage completed successfully!");
       navigate('/provider/dashboard');
@@ -113,6 +123,7 @@ export function EncounterWorkspace() {
         diagnosis: clinical.diagnosis,
         treatment_plan: clinical.treatment_plan,
         next_step: clinical.next_step,
+        dental_procedure: clinical.dental_procedure,
         prescriptions: prescriptions.map(rx => ({
           ...rx,
           duration_days: parseInt(rx.duration_days) || 0
@@ -122,6 +133,19 @@ export function EncounterWorkspace() {
       navigate('/provider/dashboard');
     } catch (err: any) {
       alert(err.message || "Failed to save clinical record");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCompleteDispensing = async () => {
+    setSaving(true);
+    try {
+      await api.post('/encounters/dispensing', { queue_id: queueId });
+      alert("Medications dispensed and visit completed!");
+      navigate('/provider/dashboard');
+    } catch (err: any) {
+      alert(err.message || "Failed to complete dispensing");
     } finally {
       setSaving(false);
     }
@@ -146,11 +170,15 @@ export function EncounterWorkspace() {
             </div>
             <div className="flex gap-3">
               <button 
-                onClick={roleType === 'TRIAGE_NURSE' ? handleSaveTriage : handleSaveClinical}
+                onClick={
+                  roleType === 'TRIAGE_NURSE' ? handleSaveTriage : 
+                  roleType === 'PHARMACIST' ? handleCompleteDispensing : 
+                  handleSaveClinical
+                }
                 disabled={saving}
                 className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition flex items-center gap-2"
               >
-                {saving ? 'Saving...' : 'Finalize & Next Patient'}
+                {saving ? 'Processing...' : 'Finalize & Next Patient'}
                 <Save className="w-5 h-5" />
               </button>
             </div>
@@ -206,6 +234,32 @@ export function EncounterWorkspace() {
                         placeholder="60.0"
                       />
                     </div>
+
+                    {/* Specialized YAKAP Vitals */}
+                    {queue.service_type === 'YAKAP' && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">Head Circumference (cm)</label>
+                          <input 
+                            type="number" step="0.1" 
+                            value={vitals.head_circumference}
+                            onChange={(e) => setVitals({...vitals, head_circumference: e.target.value})}
+                            className="w-full px-4 py-3 border-2 border-orange-100 rounded-xl focus:border-orange-500 outline-none bg-orange-50/30" 
+                            placeholder="35.0"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-gray-700">Weeks of Gestation</label>
+                          <input 
+                            type="number" 
+                            value={vitals.weeks_gestation}
+                            onChange={(e) => setVitals({...vitals, weeks_gestation: e.target.value})}
+                            className="w-full px-4 py-3 border-2 border-orange-100 rounded-xl focus:border-orange-500 outline-none bg-orange-50/30" 
+                            placeholder="20"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               ) : roleType === 'PHARMACIST' ? (
@@ -214,17 +268,78 @@ export function EncounterWorkspace() {
                     <Pill className="w-6 h-6 text-green-600" />
                     Pharmacy Dispensing
                   </h3>
+
+                  {/* Direct Request Bypass: Show Pre-Triage symptoms if no clinical encounter exists */}
+                  {queue.service_type === 'MEDICINE_DISPENSING' && !queue.Encounter && (
+                    <div className="space-y-6">
+                      <div className="p-5 bg-blue-50 border border-blue-100 rounded-2xl">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <p className="text-xs font-bold text-blue-800 uppercase mb-1 tracking-widest">Direct Patient Request</p>
+                            <p className="text-gray-900 font-bold italic text-lg">"{queue.pre_triage_data?.symptoms || 'No request notes provided'}"</p>
+                          </div>
+                          <button 
+                            onClick={() => setShowHistory(true)}
+                            className="px-3 py-1 bg-white text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 shadow-sm hover:bg-blue-50 transition"
+                          >
+                            Verify Active Prescription Vault
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Quantity to Dispense</label>
+                            <input 
+                              type="number"
+                              value={dispensingData.quantity}
+                              onChange={(e) => setDispensingData({...dispensingData, quantity: e.target.value})}
+                              placeholder="e.g. 10"
+                              className="w-full px-4 py-2 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none font-bold"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Batch/Notes</label>
+                            <input 
+                              type="text"
+                              value={dispensingData.notes}
+                              onChange={(e) => setDispensingData({...dispensingData, notes: e.target.value})}
+                              placeholder="Lot # / Expiry"
+                              className="w-full px-4 py-2 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="mb-6 space-y-3">
                     <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Prescribed Medications:</h4>
                     {queue.Encounter?.Prescriptions && queue.Encounter.Prescriptions.length > 0 ? (
-                      queue.Encounter.Prescriptions.map((rx: any, idx: number) => (
-                        <div key={idx} className="p-4 bg-green-50 border border-green-100 rounded-xl">
-                          <p className="text-lg font-bold text-gray-900">{rx.medication_name}</p>
-                          <p className="text-sm text-green-700 font-medium">{rx.dosage} • {rx.frequency}</p>
-                          <p className="text-xs text-gray-500 mt-1 italic">Duration: {rx.duration_days} days</p>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl mb-4">
+                          <User className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <p className="text-[10px] font-bold text-blue-800 uppercase tracking-widest">Attending Physician</p>
+                            <p className="text-sm font-black text-gray-900">
+                              Dr. {queue.Encounter.Provider?.first_name} {queue.Encounter.Provider?.last_name} | 
+                              <span className="text-blue-600 ml-1 underline decoration-2 underline-offset-4">PRC No: {queue.Encounter.Prescriptions[0]?.prescriber_prc_number || 'N/A'}</span>
+                            </p>
+                          </div>
                         </div>
-                      ))
+                        {queue.Encounter.Prescriptions.map((rx: any, idx: number) => (
+                          <div key={idx} className="p-4 bg-green-50 border border-green-100 rounded-xl flex justify-between items-center">
+                            <div>
+                              <p className="text-lg font-bold text-gray-900">{rx.medication_name}</p>
+                              <p className="text-sm text-green-700 font-medium">{rx.dosage} • {rx.frequency}</p>
+                              <p className="text-xs text-gray-500 mt-1 italic">Duration: {rx.duration_days} days</p>
+                            </div>
+                            <div className="text-right">
+                              <Shield className="w-5 h-5 text-green-600 ml-auto" />
+                              <p className="text-[8px] font-bold text-gray-400 mt-1">LEGAL SNAPSHOT ATTACHED</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className="p-6 bg-orange-50 border border-orange-100 rounded-xl">
                         <p className="text-sm text-orange-800 italic text-center">No structured prescriptions found. Please check treatment plan.</p>
@@ -237,10 +352,11 @@ export function EncounterWorkspace() {
                   <div className="space-y-4 pt-4 border-t">
                     <p className="text-sm text-gray-600">By finalizing this action, you confirm that all prescribed medications have been explained and dispensed to the patient.</p>
                     <button 
-                      onClick={handleSaveClinical}
+                      onClick={handleCompleteDispensing}
+                      disabled={saving}
                       className="w-full py-4 bg-green-600 text-white rounded-xl font-bold shadow-lg shadow-green-100 hover:bg-green-700 transition"
                     >
-                      Confirm Dispensing & Complete Visit
+                      {saving ? 'Completing...' : 'Confirm Dispensing & Complete Visit'}
                     </button>
                   </div>
                 </div>
@@ -248,86 +364,141 @@ export function EncounterWorkspace() {
                 <div className="bg-white p-8 rounded-2xl shadow-md border border-gray-100">
                   <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                     <Clipboard className="w-6 h-6 text-blue-600" />
-                    Clinical Record
+                    {queue.service_type === 'DENTAL' ? 'Dental Procedure Record' : 'Clinical Record'}
                   </h3>
+                  
                   <div className="space-y-6">
+                    {/* Specialized Chief Complaint Section */}
                     <div>
-                      <label className="text-sm font-bold text-gray-700 mb-2 block">Chief Complaint</label>
+                      <label className="text-sm font-bold text-gray-700 mb-2 block">
+                        {queue.service_type === 'DENTAL' ? 'Dental Chart Notes' : 'Chief Complaint'}
+                      </label>
                       <textarea 
                         value={clinical.chief_complaint}
                         onChange={(e) => setClinical({...clinical, chief_complaint: e.target.value})}
                         className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none min-h-[80px]" 
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-bold text-gray-700 mb-2 block">Diagnosis / Impression</label>
-                      <textarea 
-                        value={clinical.diagnosis}
-                        onChange={(e) => setClinical({...clinical, diagnosis: e.target.value})}
-                        className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none min-h-[80px]" 
+                        placeholder={queue.service_type === 'DENTAL' ? "Tooth #, specific dental issues..." : "Brief description of the issue..."}
                       />
                     </div>
 
+                    {/* Specialized Diagnosis / Procedure Section */}
+                    <div>
+                      <label className="text-sm font-bold text-gray-700 mb-2 block">
+                        {queue.service_type === 'DENTAL' ? 'Procedure Performed' : 
+                         queue.service_type === 'YAKAP' ? 'Maternal/Child Assessment' : 'Diagnosis / Impression'}
+                      </label>
+                      
+                      {queue.service_type === 'DENTAL' ? (
+                        <select 
+                          value={clinical.dental_procedure}
+                          onChange={(e) => setClinical({...clinical, dental_procedure: e.target.value})}
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none bg-white font-medium"
+                        >
+                          <option value="">-- Select Procedure --</option>
+                          <option value="EXTRACTION">Tooth Extraction</option>
+                          <option value="FILLING">Dental Filling</option>
+                          <option value="PROPHYLAXIS">Oral Prophylaxis (Cleaning)</option>
+                          <option value="CHECKUP">General Check-up</option>
+                        </select>
+                      ) : (
+                        <textarea 
+                          value={clinical.diagnosis}
+                          onChange={(e) => setClinical({...clinical, diagnosis: e.target.value})}
+                          className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none min-h-[80px]" 
+                        />
+                      )}
+                    </div>
+
+                    {/* Specialized e-Rx Section */}
                     <div className="border-t pt-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-bold text-gray-900 flex items-center gap-2">
                           <Pill className="w-5 h-5 text-green-600" />
-                          Electronic Prescriptions (e-Rx)
+                          {queue.service_type === 'TB_DOTS' ? 'DOTS Medication Protocol' : 'Electronic Prescriptions (e-Rx)'}
                         </h4>
-                        <button 
-                          onClick={addPrescription}
-                          className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-lg hover:bg-green-100 transition"
-                        >
-                          + Add Medication
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {prescriptions.map((rx, idx) => (
-                          <div key={idx} className="grid grid-cols-12 gap-2 p-3 bg-gray-50 rounded-xl items-end relative">
-                            <div className="col-span-5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400">Medication</label>
-                              <input 
-                                value={rx.medication_name}
-                                onChange={(e) => updatePrescription(idx, 'medication_name', e.target.value)}
-                                className="w-full bg-white border px-2 py-1.5 rounded text-sm outline-none focus:border-blue-500" 
-                                placeholder="Amoxicillin 500mg"
-                              />
-                            </div>
-                            <div className="col-span-3">
-                              <label className="text-[10px] font-bold uppercase text-gray-400">Dosage</label>
-                              <input 
-                                value={rx.dosage}
-                                onChange={(e) => updatePrescription(idx, 'dosage', e.target.value)}
-                                className="w-full bg-white border px-2 py-1.5 rounded text-sm outline-none focus:border-blue-500" 
-                                placeholder="1 cap"
-                              />
-                            </div>
-                            <div className="col-span-3">
-                              <label className="text-[10px] font-bold uppercase text-gray-400">Frequency</label>
-                              <input 
-                                value={rx.frequency}
-                                onChange={(e) => updatePrescription(idx, 'frequency', e.target.value)}
-                                className="w-full bg-white border px-2 py-1.5 rounded text-sm outline-none focus:border-blue-500" 
-                                placeholder="3x a day"
-                              />
-                            </div>
-                            <div className="col-span-1">
-                              <button 
-                                onClick={() => removePrescription(idx)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 rounded"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {prescriptions.length === 0 && (
-                          <p className="text-center py-4 text-xs text-gray-400 italic bg-gray-50 rounded-xl border-2 border-dashed">
-                            No medications added. Click "+ Add Medication" if needed.
-                          </p>
+                        {queue.service_type !== 'TB_DOTS' && (
+                          <button 
+                            onClick={addPrescription}
+                            className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-lg hover:bg-green-100 transition"
+                          >
+                            + Add Medication
+                          </button>
                         )}
                       </div>
+                      
+                      {queue.service_type === 'TB_DOTS' ? (
+                        <div className="grid grid-cols-2 gap-4 bg-orange-50 p-6 rounded-2xl border border-orange-100">
+                          {['Isoniazid', 'Rifampicin', 'Pyrazinamide', 'Ethambutol'].map((med) => (
+                            <label key={med} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-orange-200 cursor-pointer hover:bg-orange-100 transition">
+                              <input 
+                                type="checkbox" 
+                                className="w-5 h-5 accent-orange-600"
+                                onChange={(e) => {
+                                  const updated = e.target.checked 
+                                    ? [...clinical.dots_meds, med]
+                                    : clinical.dots_meds.filter(m => m !== med);
+                                  setClinical({...clinical, dots_meds: updated});
+                                  
+                                  // Sync with prescriptions array for the API
+                                  if (e.target.checked) {
+                                    setPrescriptions([...prescriptions, { medication_name: med, dosage: 'Standard DOTS', frequency: 'Daily', duration_days: 30 }]);
+                                  } else {
+                                    setPrescriptions(prescriptions.filter(p => p.medication_name !== med));
+                                  }
+                                }}
+                              />
+                              <span className="font-bold text-sm text-gray-800">{med}</span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {prescriptions.map((rx, idx) => (
+                            <div key={idx} className="grid grid-cols-12 gap-2 p-3 bg-gray-50 rounded-xl items-end relative">
+                              <div className="col-span-5">
+                                <label className="text-[10px] font-bold uppercase text-gray-400">Medication</label>
+                                <input 
+                                  value={rx.medication_name}
+                                  onChange={(e) => updatePrescription(idx, 'medication_name', e.target.value)}
+                                  className="w-full bg-white border px-2 py-1.5 rounded text-sm outline-none focus:border-blue-500" 
+                                  placeholder="Amoxicillin 500mg"
+                                />
+                              </div>
+                              <div className="col-span-3">
+                                <label className="text-[10px] font-bold uppercase text-gray-400">Dosage</label>
+                                <input 
+                                  value={rx.dosage}
+                                  onChange={(e) => updatePrescription(idx, 'dosage', e.target.value)}
+                                  className="w-full bg-white border px-2 py-1.5 rounded text-sm outline-none focus:border-blue-500" 
+                                  placeholder="1 cap"
+                                />
+                              </div>
+                              <div className="col-span-3">
+                                <label className="text-[10px] font-bold uppercase text-gray-400">Frequency</label>
+                                <input 
+                                  value={rx.frequency}
+                                  onChange={(e) => updatePrescription(idx, 'frequency', e.target.value)}
+                                  className="w-full bg-white border px-2 py-1.5 rounded text-sm outline-none focus:border-blue-500" 
+                                  placeholder="3x a day"
+                                />
+                              </div>
+                              <div className="col-span-1">
+                                <button 
+                                  onClick={() => removePrescription(idx)}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          {prescriptions.length === 0 && (
+                            <p className="text-center py-4 text-xs text-gray-400 italic bg-gray-50 rounded-xl border-2 border-dashed">
+                              No medications added. Click "+ Add Medication" if needed.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -338,6 +509,7 @@ export function EncounterWorkspace() {
                         className="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none min-h-[80px]" 
                       />
                     </div>
+
                     <div>
                       <label className="text-sm font-bold text-gray-700 mb-2 block">Next Step</label>
                       <select 
@@ -347,6 +519,8 @@ export function EncounterWorkspace() {
                       >
                         <option value="PHARMACY">Refer to Pharmacy</option>
                         <option value="COMPLETED">Complete Visit</option>
+                        {queue.service_type === 'YAKAP' && <option value="YAKAP_FOLLOWUP">Schedule Next Routine Checkup</option>}
+                        {queue.service_type === 'TB_DOTS' && <option value="TB_FOLLOWUP">Schedule Next DOTS Visit</option>}
                         <option value="REFERRED_OUT">Refer Out of Facility</option>
                       </select>
                     </div>
@@ -488,7 +662,10 @@ export function EncounterWorkspace() {
                                 {enc.Prescriptions.map((rx: any, idx: number) => (
                                   <div key={idx} className={`${idx !== 0 ? 'pt-3 border-t border-gray-50' : ''}`}>
                                     <p className="text-sm font-bold text-gray-900">{rx.medication_name}</p>
-                                    <p className="text-xs text-blue-600 font-medium">{rx.dosage} • {rx.frequency} • {rx.duration_days} days</p>
+                                    <div className="flex justify-between items-center">
+                                      <p className="text-xs text-blue-600 font-medium">{rx.dosage} • {rx.frequency} • {rx.duration_days} days</p>
+                                      <p className="text-[9px] font-bold text-gray-400">PRC: {rx.prescriber_prc_number || 'N/A'}</p>
+                                    </div>
                                   </div>
                                 ))}
                               </div>

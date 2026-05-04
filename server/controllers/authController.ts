@@ -58,7 +58,8 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const userId = role === 'patient' ? (user as Patient).patient_id : (user as Provider).provider_id;
-    const token = jwt.sign({ id: userId, role }, JWT_SECRET, { expiresIn: '8h' });
+    const roleType = (user as any).role_type || null;
+    const token = jwt.sign({ id: userId, role, role_type: roleType }, JWT_SECRET, { expiresIn: '8h' });
 
     res.status(200).json({
       message: 'Login successful',

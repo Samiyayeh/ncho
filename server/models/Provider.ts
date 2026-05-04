@@ -55,7 +55,7 @@ export class Provider extends Model {
   declare prc_license_number: string;
 
   @Column({
-    type: DataType.ENUM('TRIAGE_NURSE', 'PHYSICIAN', 'PHARMACIST', 'DENTIST', 'SOCIAL_WORKER'),
+    type: DataType.ENUM('TRIAGE_NURSE', 'PHYSICIAN', 'PHARMACIST', 'DENTIST', 'SOCIAL_WORKER', 'SPECIALIST'),
     allowNull: false,
     defaultValue: 'PHYSICIAN'
   })
