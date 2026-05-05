@@ -150,3 +150,44 @@ export const getActiveQueue = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const submitIdVerification = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id_type, id_number } = req.body;
+    const patient_id = req.user?.id; // Extracted from auth token
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'ID image is required.' });
+    }
+
+    if (!id_type || !['PHILHEALTH', 'PHILSYS'].includes(id_type)) {
+      return res.status(400).json({ error: 'Valid ID type (PHILHEALTH or PHILSYS) is required.' });
+    }
+
+    const patient = await Patient.findByPk(patient_id);
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found.' });
+    }
+
+    // Only allow submission if unverified or previously rejected
+    if (patient.verification_status === 'VERIFIED' || patient.verification_status === 'PENDING_REVIEW') {
+      return res.status(400).json({ error: 'Patient is already verified or currently under review.' });
+    }
+
+    // Update patient record
+    await patient.update({
+      id_type,
+      id_number: id_number || null,
+      id_image_url: req.file.filename, // Store just the filename, not full path
+      verification_status: 'PENDING_REVIEW'
+    });
+
+    res.status(200).json({ 
+      message: 'ID submitted successfully. Please wait for admin review.',
+      status: 'PENDING_REVIEW'
+    });
+    
+  } catch (error: any) {
+    console.error('ID Submission Error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+};

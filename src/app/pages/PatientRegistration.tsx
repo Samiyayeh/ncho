@@ -19,6 +19,13 @@ export function PatientRegistration() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    // Clear any existing sessions when accessing the registration page
+    // This prevents old provider sessions from conflicting with new patient registration
+    localStorage.removeItem('ncho_token');
+    localStorage.removeItem('ncho_user');
+  }, []);
+
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -74,21 +81,21 @@ export function PatientRegistration() {
         <div className="max-w-md mx-auto px-4 space-y-4">
           {/* Verification Alert Card */}
           <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-6 shadow-md">
-            <div className="flex gap-3 mb-4">
-              <AlertCircle className="w-8 h-8 text-yellow-600 flex-shrink-0" />
-              <div>
-                <h3 className="text-xl font-bold text-yellow-900 mb-2">Account Unverified - Action Required</h3>
-                <p className="text-sm text-yellow-800 mb-4">
-                  Your shell account has been created successfully. To activate your digital Health Passport,
-                  please visit the <span className="font-bold">Naga City Health Office triage desk</span> and
-                  present a valid physical ID.
-                </p>
-                <div className="bg-yellow-100 rounded-lg p-3 text-xs text-yellow-900">
-                  <p className="font-bold mb-1">Required Documents:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Valid Government-Issued ID (National ID, Driver's License, or Passport)</li>
-                    <li>Proof of Residency in Naga City (Optional but recommended)</li>
-                  </ul>
+            <div className="flex flex-col md:flex-row gap-4 mb-2 items-start md:items-center">
+              <div className="flex gap-3 flex-1">
+                <AlertCircle className="w-8 h-8 text-yellow-600 flex-shrink-0" />
+                <div>
+                  <h3 className="text-xl font-bold text-yellow-900 mb-2">Account Unverified - Action Required</h3>
+                  <p className="text-sm text-yellow-800 mb-4">
+                    Your shell account has been created successfully. To activate your digital Health Passport,
+                    please submit a valid government ID for online verification.
+                  </p>
+                  <Link
+                    to="/patient/verification"
+                    className="inline-block px-6 py-2 bg-yellow-600 text-white rounded-lg font-bold shadow hover:bg-yellow-700 transition"
+                  >
+                    Go to Verification Center
+                  </Link>
                 </div>
               </div>
             </div>

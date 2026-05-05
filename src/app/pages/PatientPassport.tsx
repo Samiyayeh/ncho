@@ -56,7 +56,7 @@ export function PatientPassport() {
 
       <div className="max-w-md mx-auto px-4 space-y-4">
         {/* Queue Action Card */}
-        {patient.account_status === 'ACTIVE' && (
+        {patient.verification_status === 'VERIFIED' && (
           <Link 
             to="/patient/queue" 
             className={`flex items-center justify-between p-6 rounded-2xl shadow-lg transition-all hover:scale-[1.02] text-white ${
@@ -84,14 +84,20 @@ export function PatientPassport() {
         )}
 
         {/* QR Code Card or Verification Warning */}
-        {patient.account_status === 'UNVERIFIED' ? (
+        {patient.verification_status !== 'VERIFIED' ? (
           <div className="bg-red-50 border-2 border-red-200 rounded-xl shadow-md p-6">
             <div className="flex flex-col items-center text-center">
               <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
               <h3 className="text-xl font-bold text-red-900 mb-2">Verification Required</h3>
-              <p className="text-sm text-red-800">
-                Your account is currently inactive. To protect your medical data, please present your valid Government ID to the NCHO Triage Desk to activate your Health Passport and generate your secure QR access token.
+              <p className="text-sm text-red-800 mb-4">
+                Your account is currently inactive. To protect your medical data and join queues, please submit a valid Government ID for verification.
               </p>
+              <Link 
+                to="/patient/verification"
+                className="px-6 py-2 bg-red-600 text-white rounded-lg font-bold shadow hover:bg-red-700 transition"
+              >
+                Go to Verification Center
+              </Link>
             </div>
           </div>
         ) : (

@@ -49,8 +49,8 @@ export function TriageVerification() {
       setVoterRegistered(res.voter_registered ? "yes" : "no");
       setHouseholdHead(res.household_head ? "yes" : "no");
       setAccountFound(true);
-      if (res.account_status === 'ACTIVE') {
-        toast.info("This patient's account is already ACTIVE.");
+      if (res.verification_status === 'VERIFIED') {
+        toast.info("This patient's account is already VERIFIED.");
       }
     } catch (error: any) {
       console.error(error);

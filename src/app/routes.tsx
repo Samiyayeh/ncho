@@ -18,6 +18,9 @@ import { TriageVerification } from "./pages/TriageVerification";
 import { EncounterWorkspace } from "./pages/EncounterWorkspace";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
+import { PatientVerificationCenter } from "./pages/PatientVerificationCenter";
+import { VerificationQueue } from "./pages/VerificationQueue";
+
 export const router = createBrowserRouter([
   // Public routes
   { path: "/", Component: LandingPage },
@@ -29,6 +32,7 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRole="patient" />,
     children: [
       { path: "/patient", Component: PatientPassport },
+      { path: "/patient/verification", Component: PatientVerificationCenter },
       { path: "/patient/profile", Component: PatientProfile },
       { path: "/patient/queue", Component: PatientQueue },
       { path: "/medical-records", Component: MedicalRecords },
@@ -48,6 +52,7 @@ export const router = createBrowserRouter([
       { path: "/provider/itr", Component: DigitalITR },
       { path: "/provider/upload", Component: MedicalRecordUpload },
       { path: "/admin/audit-logs", Component: AdminAuditLogs },
+      { path: "/admin/verifications", Component: VerificationQueue },
     ]
   },
 

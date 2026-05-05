@@ -1,4 +1,4 @@
-import { UserPlus, Users, Activity, FileText, Search, Clock } from "lucide-react";
+import { UserPlus, Users, Activity, FileText, Search, Clock, ShieldAlert } from "lucide-react";
 import { Link } from "react-router";
 import { ProviderLayout } from "../components/ProviderLayout";
 import { useEffect, useState } from "react";
@@ -94,6 +94,13 @@ export function ProviderDashboard() {
             >
               <FileText className="w-5 h-5" />
               Upload Lab Results
+            </Link>
+            <Link
+              to="/admin/verifications"
+              className="px-6 py-2 bg-gradient-to-r from-teal-500 to-green-500 text-white rounded-lg hover:opacity-90 transition flex items-center gap-2 font-bold"
+            >
+              <ShieldAlert className="w-5 h-5" />
+              ID Verification Queue
             </Link>
             <Link
               to="/triage/verification"

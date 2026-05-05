@@ -62,13 +62,6 @@ export class Patient extends Model {
   @Column(DataType.TEXT)
   declare address: string;
 
-  @Column({
-    type: DataType.ENUM('UNVERIFIED', 'ACTIVE'),
-    defaultValue: 'UNVERIFIED',
-    allowNull: false
-  })
-  declare account_status: string;
-
   @Column(DataType.BOOLEAN)
   declare voter_registered: boolean;
 
@@ -77,6 +70,26 @@ export class Patient extends Model {
 
   @Column(DataType.TEXT)
   declare chronic_conditions: string;
+
+  @Column({
+    type: DataType.ENUM('UNVERIFIED', 'PENDING_REVIEW', 'VERIFIED', 'REJECTED'),
+    defaultValue: 'UNVERIFIED',
+    allowNull: false
+  })
+  declare verification_status: string;
+
+  @Column({
+    type: DataType.ENUM('PHILHEALTH', 'PHILSYS', 'NONE'),
+    defaultValue: 'NONE',
+    allowNull: false
+  })
+  declare id_type: string;
+
+  @Column(DataType.STRING(100))
+  declare id_number: string;
+
+  @Column(DataType.STRING(255))
+  declare id_image_url: string;
 
   @HasMany(() => Encounter)
   declare encounters: Encounter[];

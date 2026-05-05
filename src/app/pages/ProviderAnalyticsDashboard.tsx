@@ -21,7 +21,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 export function ProviderAnalyticsDashboard() {
   const [queues, setQueues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeframe, setTimeframe] = useState<'today' | 'all'>('today');
+  const [timeframe, setTimeframe] = useState<'today' | 'all'>('all');
 
   // Read provider from localStorage
   const userRaw = localStorage.getItem('ncho_user');

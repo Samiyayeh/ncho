@@ -11,6 +11,15 @@ export const joinQueue = async (req: AuthRequest, res: Response) => {
     const { patient_id, service_type, pre_triage_data } = req.body;
     const today = new Date().toISOString().split('T')[0];
 
+    const patient = await Patient.findByPk(patient_id);
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    if (patient.verification_status !== 'VERIFIED') {
+      return res.status(403).json({ error: 'Account not verified. Please complete ID verification first.' });
+    }
+
     // 1. Service Routing Matrix Logic
     // If MEDICINE_DISPENSING, bypass Phases 2 & 3 and go directly to PHARMACY
     let initialStatus = 'PENDING_TRIAGE';

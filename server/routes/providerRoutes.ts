@@ -9,7 +9,10 @@ import {
   getAdminAuditLogs,
   scanQr,
   patientLookup,
-  verifyPatient
+  verifyPatient,
+  getPendingVerifications,
+  reviewPatientVerification,
+  viewIdImage
 } from '../controllers/providerController';
 import { authenticateToken } from '../middlewares/authMiddleware';
 import { auditLogger } from '../middlewares/auditLogger';
@@ -50,5 +53,14 @@ router.get('/patient-lookup', patientLookup);
 
 // POST verify patient
 router.post('/verify-patient', verifyPatient);
+
+// GET pending verifications
+router.get('/pending-verifications', getPendingVerifications);
+
+// PUT review patient verification
+router.put('/verify-patient/:patient_id', reviewPatientVerification);
+
+// GET view ID image securely
+router.get('/view-id/:filename', viewIdImage);
 
 export default router;

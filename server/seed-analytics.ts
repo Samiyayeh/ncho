@@ -114,7 +114,8 @@ async function seed() {
         gender: isMale ? 'Male' : 'Female',
         blood_type: randomItem(['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-']),
         contact_number: `091${Math.floor(10000000 + Math.random() * 90000000)}`,
-        account_status: 'ACTIVE',
+        verification_status: 'VERIFIED',
+        id_type: 'PHILHEALTH',
         voter_registered: Math.random() > 0.3,
         household_head: Math.random() > 0.7,
         address: `${Math.floor(Math.random() * 999) + 1} Random St, Naga City`
