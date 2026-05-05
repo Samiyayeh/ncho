@@ -17,8 +17,8 @@ export function AdminAuditLogs() {
         const data = await api.get('/provider/audit-logs');
         
         // If not an admin, only show logs where provider_id matches current user's ID
-        if (user.role !== 'ADMIN') {
-          const personalLogs = data.filter((l: any) => String(l.provider_id) === String(user.user_id));
+        if (user.role !== 'ADMIN' && user.role_type !== 'ADMIN') {
+          const personalLogs = data.filter((l: any) => String(l.provider_id) === String(user.id));
           setLogs(personalLogs);
         } else {
           setLogs(data);

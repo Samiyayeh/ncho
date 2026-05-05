@@ -1,4 +1,4 @@
-import { Home, Users, UploadCloud, FileText, LogOut, Heart } from "lucide-react";
+import { Home, Users, UploadCloud, FileText, LogOut, Heart, Activity, PieChart } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ReactNode } from "react";
 
@@ -22,7 +22,8 @@ export function ProviderLayout({ children }: ProviderLayoutProps) {
   };
 
   const navItems = [
-    { path: "/provider/dashboard", icon: Home, label: "Dashboard" },
+    { path: "/provider/analytics", icon: PieChart, label: "Dashboard" },
+    { path: "/provider/dashboard", icon: Activity, label: "Live Queue" },
     { path: "/provider", icon: Users, label: "Patient Directory" },
     { path: "/provider/upload", icon: UploadCloud, label: "Upload Records" },
     { 

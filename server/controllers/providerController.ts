@@ -58,7 +58,7 @@ export const patientLookup = async (req: AuthRequest, res: Response) => {
           { patient_id: query }
         ]
       },
-      attributes: ['patient_id', 'email', 'first_name', 'last_name', 'account_status', 'created_at', 'date_of_birth', 'address']
+      attributes: ['patient_id', 'email', 'first_name', 'last_name', 'verification_status', 'created_at', 'date_of_birth', 'address']
     });
 
     if (!patient) {
@@ -101,7 +101,7 @@ export const verifyPatient = async (req: AuthRequest, res: Response) => {
       blood_type,
       allergies: Array.isArray(allergies) ? allergies.join(', ') : allergies,
       chronic_conditions,
-      account_status: 'ACTIVE'
+      verification_status: 'VERIFIED'
     }, { transaction });
 
     await AuditLog.create({
@@ -283,6 +283,84 @@ export const getPatientEncounters = async (req: AuthRequest, res: Response) => {
     res.status(200).json(encounters);
   } catch (error) {
     console.error('Error fetching encounters:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+export const getPendingVerifications = async (req: AuthRequest, res: Response) => {
+  try {
+    const pendingPatients = await Patient.findAll({
+      where: { verification_status: 'PENDING_REVIEW' },
+      attributes: ['patient_id', 'first_name', 'last_name', 'email', 'date_of_birth', 'id_type', 'id_number', 'id_image_url', 'created_at']
+    });
+    res.status(200).json(pendingPatients);
+  } catch (error) {
+    console.error('Error fetching pending verifications:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+export const reviewPatientVerification = async (req: AuthRequest, res: Response) => {
+  try {
+    const { patient_id } = req.params;
+    const { status } = req.body;
+
+    if (!['VERIFIED', 'REJECTED'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be VERIFIED or REJECTED.' });
+    }
+
+    const patient = await Patient.findByPk(patient_id);
+    if (!patient) return res.status(404).json({ error: 'Patient not found' });
+
+    if (status === 'VERIFIED') {
+      await patient.update({
+        verification_status: 'VERIFIED'
+      });
+    } else {
+      await patient.update({
+        verification_status: 'REJECTED',
+        id_image_url: null,
+        id_number: null,
+        id_type: 'NONE'
+      });
+    }
+
+    // Log the audit
+    await AuditLog.create({
+      provider_id: req.user?.id || null,
+      patient_id: patient.patient_id,
+      action_taken: `ID Verification ${status}`,
+      endpoint_accessed: `/api/admin/verify-patient/${patient_id}`,
+      ip_address: req.ip || req.socket.remoteAddress || 'Unknown'
+    });
+
+    res.status(200).json({ message: `Patient verification marked as ${status}.` });
+  } catch (error) {
+    console.error('Error reviewing verification:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+import path from 'path';
+import fs from 'fs';
+
+export const viewIdImage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { filename } = req.params;
+    // VERY IMPORTANT: Prevent directory traversal
+    if (filename.includes('..') || filename.includes('/')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    const filePath = path.join(process.cwd(), 'uploads', 'ids', filename);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    res.sendFile(filePath);
+  } catch (error) {
+    console.error('Error viewing ID image:', error);
     res.status(500).json({ error: 'Internal server error.' });
   }
 };

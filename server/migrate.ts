@@ -7,15 +7,6 @@ async function runMigration() {
     await sequelize.authenticate();
     console.log('Connected to database.');
 
-    // Add account_status
-    try {
-      await sequelize.query("ALTER TABLE PATIENTS ADD COLUMN account_status ENUM('UNVERIFIED', 'ACTIVE') NOT NULL DEFAULT 'UNVERIFIED'");
-      console.log('Added account_status column.');
-    } catch (e: any) {
-      if (e.parent?.code === 'ER_DUP_FIELDNAME') console.log('account_status column already exists.');
-      else throw e;
-    }
-
     // Add voter_registered
     try {
       await sequelize.query("ALTER TABLE PATIENTS ADD COLUMN voter_registered BOOLEAN DEFAULT NULL");

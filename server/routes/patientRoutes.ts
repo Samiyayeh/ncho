@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { getPatientProfile, getPatientRecords, getPatientEncounters, getPatientPrivacyLogs, getQrToken, getActiveQueue } from '../controllers/patientController';
+import { getPatientProfile, getPatientRecords, getPatientEncounters, getPatientPrivacyLogs, getQrToken, getActiveQueue, submitIdVerification } from '../controllers/patientController';
 import { authenticateToken } from '../middlewares/authMiddleware';
+import { uploadId } from '../config/multer';
 import { auditLogger } from '../middlewares/auditLogger';
 
 const router = Router();
@@ -25,5 +26,8 @@ router.get('/active-queue', getActiveQueue);
 
 // GET /api/patient/qr-token
 router.get('/qr-token', getQrToken);
+
+// POST /api/patient/verify-upload
+router.post('/verify-upload', uploadId.single('id_image'), submitIdVerification);
 
 export default router;

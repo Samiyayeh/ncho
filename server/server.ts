@@ -10,7 +10,8 @@ import providerRoutes from './routes/providerRoutes';
 import queueRoutes from './routes/queueRoutes';
 import encounterRoutes from './routes/encounterRoutes';
 
-dotenv.config();
+// Environment is loaded via config/db.ts
+
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -40,7 +41,7 @@ const startServer = async () => {
   await testConnection();
     // Synchronize Sequelize models with the database
     // Architectural sync complete. Returning to standard sync for stability.
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
   console.log('Sequelize models synchronized with the database.');
 
  app.listen(port, () => {

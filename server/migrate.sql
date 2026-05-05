@@ -4,10 +4,6 @@
 
 USE ncho_patient_link;
 
--- Add account_status column (tracks whether a patient has been physically verified)
-ALTER TABLE PATIENTS
-    ADD COLUMN IF NOT EXISTS account_status ENUM('UNVERIFIED', 'ACTIVE') NOT NULL DEFAULT 'UNVERIFIED';
-
 -- Add voter_registered column (LGU tracking requirement)
 ALTER TABLE PATIENTS
     ADD COLUMN IF NOT EXISTS voter_registered BOOLEAN DEFAULT NULL;

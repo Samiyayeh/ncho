@@ -11,6 +11,15 @@ export const joinQueue = async (req: AuthRequest, res: Response) => {
     const { patient_id, service_type, pre_triage_data } = req.body;
     const today = new Date().toISOString().split('T')[0];
 
+    const patient = await Patient.findByPk(patient_id);
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    if (patient.verification_status !== 'VERIFIED') {
+      return res.status(403).json({ error: 'Account not verified. Please complete ID verification first.' });
+    }
+
     // 1. Service Routing Matrix Logic
     // If MEDICINE_DISPENSING, bypass Phases 2 & 3 and go directly to PHARMACY
     let initialStatus = 'PENDING_TRIAGE';
@@ -68,10 +77,13 @@ export const updateQueueStatus = async (req: AuthRequest, res: Response) => {
 export const getDailyQueue = async (req: AuthRequest, res: Response) => {
   try {
     const { date, status, id } = req.query;
-    const today = date || new Date().toISOString().split('T')[0];
+    const today = date === 'all' ? null : (date || new Date().toISOString().split('T')[0]);
     const userRole = req.user?.role_type; // From JWT
 
-    const where: any = { date: today };
+    const where: any = {};
+    if (today) {
+      where.date = today;
+    }
     if (id) {
       where.queue_id = id;
     } else {
@@ -88,10 +100,16 @@ export const getDailyQueue = async (req: AuthRequest, res: Response) => {
       } else if (userRole === 'TRIAGE_NURSE') {
         where.status = status || 'PENDING_TRIAGE';
       } else if (userRole === 'PHARMACIST') {
-        where.status = 'PHARMACY';
+        where.status = status || 'PHARMACY';
       } else {
         // Patients or generic users see their own date's queue (already in where.date)
         if (status) where.status = status;
+      }
+
+      if (status === 'all') {
+        delete where.status;
+        // Optionally, for true analytics, remove service_type filter as well so they see the whole clinic
+        delete where.service_type; 
       }
     }
 

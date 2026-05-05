@@ -7,6 +7,7 @@ import { PatientQueue } from "./pages/PatientQueue";
 import { PatientProfile } from "./pages/PatientProfile";
 import { ProviderPortal } from "./pages/ProviderPortal";
 import { ProviderDashboard } from "./pages/ProviderDashboard";
+import { ProviderAnalyticsDashboard } from "./pages/ProviderAnalyticsDashboard";
 import { ClinicalView } from "./pages/ClinicalView";
 import { DigitalITR } from "./pages/DigitalITR";
 import { MedicalRecords } from "./pages/MedicalRecords";
@@ -16,6 +17,9 @@ import { AdminAuditLogs } from "./pages/AdminAuditLogs";
 import { TriageVerification } from "./pages/TriageVerification";
 import { EncounterWorkspace } from "./pages/EncounterWorkspace";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+
+import { PatientVerificationCenter } from "./pages/PatientVerificationCenter";
+import { VerificationQueue } from "./pages/VerificationQueue";
 
 export const router = createBrowserRouter([
   // Public routes
@@ -28,6 +32,7 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRole="patient" />,
     children: [
       { path: "/patient", Component: PatientPassport },
+      { path: "/patient/verification", Component: PatientVerificationCenter },
       { path: "/patient/profile", Component: PatientProfile },
       { path: "/patient/queue", Component: PatientQueue },
       { path: "/medical-records", Component: MedicalRecords },
@@ -41,11 +46,13 @@ export const router = createBrowserRouter([
     children: [
       { path: "/provider", Component: ProviderPortal },
       { path: "/provider/dashboard", Component: ProviderDashboard },
+      { path: "/provider/analytics", Component: ProviderAnalyticsDashboard },
       { path: "/provider/encounter/:queueId", Component: EncounterWorkspace },
       { path: "/provider/clinical/:patientId", Component: ClinicalView },
       { path: "/provider/itr", Component: DigitalITR },
       { path: "/provider/upload", Component: MedicalRecordUpload },
       { path: "/admin/audit-logs", Component: AdminAuditLogs },
+      { path: "/admin/verifications", Component: VerificationQueue },
     ]
   },
 

@@ -100,7 +100,6 @@ CREATE TABLE `patients` (
   `allergies` text DEFAULT NULL,
   `contact_number` varchar(20) DEFAULT NULL,
   `address` text DEFAULT NULL,
-  `account_status` enum('UNVERIFIED','ACTIVE') NOT NULL DEFAULT 'UNVERIFIED',
   `voter_registered` tinyint(1) DEFAULT NULL,
   `household_head` tinyint(1) DEFAULT NULL,
   `chronic_conditions` text DEFAULT NULL,
