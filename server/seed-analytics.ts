@@ -6,7 +6,6 @@ import { Prescription } from './models/Prescription';
 import { MedicalRecord } from './models/MedicalRecord';
 import { AuditLog } from './models/AuditLog';
 import { QrAccessToken } from './models/QrAccessToken';
-import { Queue } from './models/Queue'; 
 import bcrypt from 'bcrypt';
 
 // Helper to get random item from array
@@ -87,10 +86,9 @@ async function seed() {
     const firstNames = ['John', 'Jane', 'Michael', 'Emily', 'Chris', 'Sarah', 'David', 'Jessica', 'Daniel', 'Ashley', 'Matthew', 'Amanda', 'Andrew', 'Brittany', 'Joshua', 'Samantha', 'James', 'Elizabeth', 'Robert', 'Megan'];
     const lastNames = ['Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson'];
     const genders = ['Male', 'Female'];
-    const serviceTypes = ['OUTPATIENT', 'OUTPATIENT', 'OUTPATIENT', 'DENTAL', 'DENTAL', 'MEDICINE_DISPENSING', 'TB_DOTS', 'YAKAP', 'SOCIAL_HYGIENE'];
-    const queueStatuses = ['COMPLETED', 'COMPLETED', 'COMPLETED', 'PENDING_TRIAGE', 'WAITING_FOR_PROVIDER', 'IN_CONSULTATION', 'PHARMACY'];
+    const encounterStatuses = ['COMPLETED', 'COMPLETED', 'COMPLETED', 'IN_PROGRESS'];
 
-    let queueCounter = 1;
+    let encounterCounter = 1;
     const NUM_PATIENTS = 150;
 
     // We want some data to specifically be TODAY
@@ -114,80 +112,60 @@ async function seed() {
         gender: isMale ? 'Male' : 'Female',
         blood_type: randomItem(['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-']),
         contact_number: `091${Math.floor(10000000 + Math.random() * 90000000)}`,
-        verification_status: 'VERIFIED',
-        id_type: 'PHILHEALTH',
         voter_registered: Math.random() > 0.3,
         household_head: Math.random() > 0.7,
         address: `${Math.floor(Math.random() * 999) + 1} Random St, Naga City`
       } as any);
 
-      // Generate 1 to 3 queues for this patient
-      const numQueues = Math.floor(Math.random() * 3) + 1;
-      for (let j = 0; j < numQueues; j++) {
-        const sType = randomItem(serviceTypes);
-        const qStatus = randomItem(queueStatuses);
+      // Generate 1 to 3 encounters for this patient
+      const numEncounters = Math.floor(Math.random() * 3) + 1;
+      for (let j = 0; j < numEncounters; j++) {
+        const eStatus = randomItem(encounterStatuses);
         
-        // 20% chance the queue is for TODAY, otherwise past 30 days
-        const qDate = Math.random() > 0.8 ? todayStr : randomDate(30);
+        // 20% chance the encounter is for TODAY, otherwise past 30 days
+        const eDate = Math.random() > 0.8 ? todayStr : randomDate(30);
+        encounterCounter++;
 
-        const prefix = sType.substring(0, 3).toUpperCase();
-        const queue_number = `${prefix}-${queueCounter.toString().padStart(3, '0')}`;
-        queueCounter++;
-
-        const queue = await Queue.create({
+        const encounter = await Encounter.create({
           patient_id: pId,
-          service_type: sType,
-          queue_number,
-          date: qDate,
-          status: qStatus,
-          pre_triage_data: { symptoms: 'Generated test symptoms' }
-        });
+          provider_id: randomItem(providers).provider_id,
+          encounter_date: new Date(eDate),
+          chief_complaint: 'Routine checkup / Generated complaint',
+          diagnosis: 'Healthy',
+          treatment_plan: 'Rest and hydration',
+          status: eStatus
+        } as any);
 
-        // If completed or in consultation, generate an encounter and medical record
-        if (qStatus === 'COMPLETED' || qStatus === 'IN_CONSULTATION') {
-          const encounter = await Encounter.create({
+        if (eStatus === 'COMPLETED') {
+          await MedicalRecord.create({
             patient_id: pId,
-            provider_id: randomItem(providers).provider_id,
-            queue_id: queue.queue_id,
-            date: new Date(qDate),
-            chief_complaint: 'Routine checkup / Generated complaint',
-            diagnosis: 'Healthy',
-            treatment_plan: 'Rest and hydration',
-            notes: 'Generated via seeding',
-            status: qStatus === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS'
-          } as any);
+            provider_id: encounter.provider_id,
+            encounter_id: encounter.encounter_id,
+            document_type: 'Consultation Note',
+            file_url: 'http://example.com/medical_record_mock.pdf',
+            description: 'Completed consultation record.',
+          });
 
-          if (qStatus === 'COMPLETED') {
-            await MedicalRecord.create({
-              patient_id: pId,
-              provider_id: encounter.provider_id,
-              encounter_id: encounter.encounter_id,
-              document_type: 'Consultation Note',
-              file_url: 'http://example.com/medical_record_mock.pdf',
-              description: 'Completed consultation record.',
-            });
+          await AuditLog.create({
+            provider_id: encounter.provider_id,
+            patient_id: pId,
+            action_taken: 'VIEWED_MEDICAL_RECORD',
+            ip_address: '127.0.0.1',
+            timestamp: new Date(eDate)
+          });
 
-            await AuditLog.create({
-              provider_id: encounter.provider_id,
-              patient_id: pId,
-              action_taken: 'VIEWED_MEDICAL_RECORD',
-              ip_address: '127.0.0.1',
-              timestamp: new Date(qDate)
-            });
-
-            await AuditLog.create({
-              provider_id: encounter.provider_id,
-              patient_id: pId,
-              action_taken: 'COMPLETED_ENCOUNTER',
-              ip_address: '127.0.0.1',
-              timestamp: new Date(qDate)
-            });
-          }
+          await AuditLog.create({
+            provider_id: encounter.provider_id,
+            patient_id: pId,
+            action_taken: 'COMPLETED_ENCOUNTER',
+            ip_address: '127.0.0.1',
+            timestamp: new Date(eDate)
+          });
         }
       }
     }
 
-    console.log(`Seeding complete. Inserted ${NUM_PATIENTS} patients and ${queueCounter - 1} queues.`);
+    console.log(`Seeding complete. Inserted ${NUM_PATIENTS} patients and ${encounterCounter - 1} encounters.`);
     process.exit(0);
   } catch (error) {
     console.error('Seeding failed:', error);

@@ -1,66 +1,74 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { Encounter } from '../models/Encounter';
-import { Queue } from '../models/Queue';
+import { Patient } from '../models/Patient';
 import { Prescription } from '../models/Prescription';
 import { Provider } from '../models/Provider';
 import sequelize from '../config/db';
+import { Op } from 'sequelize';
 
-export const saveTriage = async (req: AuthRequest, res: Response) => {
-  const transaction = await sequelize.transaction();
+export const startEncounter = async (req: AuthRequest, res: Response) => {
   try {
-    const { queue_id, bp_systolic, bp_diastolic, temperature, weight_kg, head_circumference, weeks_gestation } = req.body;
+    const { patient_id } = req.body;
     const provider_id = req.user?.id;
 
     if (!provider_id) throw new Error('Unauthorized');
 
-    // 1. Fetch Queue record
-    const queue = await Queue.findByPk(queue_id as string, { transaction });
-    if (!queue) return res.status(404).json({ error: 'Queue record not found.' });
+    const patient = await Patient.findByPk(patient_id);
+    if (!patient) return res.status(404).json({ error: 'Patient not found.' });
 
-    // 2. Database Mutation: INSERT into ENCOUNTERS (Phase 2)
-    const [encounter] = await Encounter.findOrCreate({
-      where: { queue_id },
-      defaults: {
-        patient_id: queue.patient_id,
-        provider_id,
-        encounter_date: new Date(),
-        bp_systolic,
-        bp_diastolic,
-        temperature,
-        weight: weight_kg,
-        specialized_data: {
-          head_circumference,
-          weeks_gestation
-        }
-      },
-      transaction
-    });
+    const encounter = await Encounter.create({
+      patient_id,
+      provider_id,
+      encounter_date: new Date(),
+      status: 'IN_PROGRESS'
+    } as any);
 
-    // If it already existed, update the vitals
-    await encounter.update({
-      bp_systolic,
-      bp_diastolic,
-      temperature,
-      weight: weight_kg,
-      specialized_data: {
-        ...(encounter.specialized_data || {}),
-        head_circumference,
-        weeks_gestation
-      }
-    }, { transaction });
-
-    // 3. State Change: QUEUES.status = WAITING_FOR_PROVIDER
-    await queue.update({ status: 'WAITING_FOR_PROVIDER' }, { transaction });
-
-    await transaction.commit();
-    res.status(200).json({ 
-      message: 'Triage phase completed. Patient moved to provider queue.', 
-      encounter 
-    });
+    res.status(200).json({ encounter_id: encounter.encounter_id });
   } catch (error: any) {
-    await transaction.rollback();
-    console.error('Phase 2 Triage Error:', error);
+    console.error('Start Encounter Error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error.' });
+  }
+};
+
+export const getEncounter = async (req: AuthRequest, res: Response) => {
+  try {
+    const { encounter_id } = req.params;
+    const encounter = await Encounter.findByPk(encounter_id as string, {
+      include: [
+        { model: Patient, as: 'Patient' }
+      ]
+    });
+    
+    if (!encounter) return res.status(404).json({ error: 'Encounter not found.' });
+
+    res.status(200).json(encounter);
+  } catch (error: any) {
+    console.error('Get Encounter Error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error.' });
+  }
+};
+
+export const getAnalyticsEncounters = async (req: AuthRequest, res: Response) => {
+  try {
+    const { date } = req.query;
+    let whereClause: any = {};
+    if (date && date !== 'all') {
+      const targetDate = new Date(date as string);
+      const nextDate = new Date(targetDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+      whereClause.encounter_date = {
+        [Op.gte]: targetDate,
+        [Op.lt]: nextDate
+      };
+    }
+    const encounters = await Encounter.findAll({
+      where: whereClause,
+      include: [{ model: Patient, as: 'Patient' }]
+    });
+    res.status(200).json(encounters);
+  } catch (error: any) {
+    console.error('Get Analytics Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error.' });
   }
 };
@@ -68,45 +76,36 @@ export const saveTriage = async (req: AuthRequest, res: Response) => {
 export const saveClinical = async (req: AuthRequest, res: Response) => {
   const transaction = await sequelize.transaction();
   try {
-    const { queue_id, chief_complaint, diagnosis, treatment_plan, next_step, prescriptions, dental_procedure } = req.body;
+    const { 
+      encounter_id, 
+      bp_systolic, bp_diastolic, temperature, weight_kg,
+      chief_complaint, diagnosis, treatment_plan, prescriptions 
+    } = req.body;
+    
     const provider_id = req.user?.id;
-
     if (!provider_id) throw new Error('Unauthorized');
 
-    // 1. Fetch Queue & Existing Encounter
-    const queue = await Queue.findByPk(queue_id as string, { transaction });
-    if (!queue) return res.status(404).json({ error: 'Queue record not found.' });
+    const encounter = await Encounter.findByPk(encounter_id, { transaction });
+    if (!encounter) return res.status(404).json({ error: 'Encounter not found.' });
 
-    const encounter = await Encounter.findOne({ where: { queue_id }, transaction });
-    if (!encounter) return res.status(404).json({ error: 'Encounter not found. Triage must be completed first.' });
-
-    // --- LEGAL REQUIREMENT: Verify Prescriptive Authority ---
     const prescriber = await Provider.findByPk(provider_id as string, { transaction });
     const prcNumber = prescriber?.prc_license_number;
 
-    const hasMeds = prescriptions && Array.isArray(prescriptions) && prescriptions.length > 0;
-    
-    if (hasMeds) {
-      if (!prcNumber || prescriber?.role_type === 'TRIAGE_NURSE') {
-        throw new Error('403 Forbidden: Invalid Prescriptive Authority. Prescription requires a valid physician PRC license.');
-      }
-    }
-
-    // 2. Database Mutation: UPDATE ENCOUNTERS (Phase 3)
     await encounter.update({
-      provider_id,
+      bp_systolic: bp_systolic ? parseInt(bp_systolic) : null,
+      bp_diastolic: bp_diastolic ? parseInt(bp_diastolic) : null,
+      temperature: temperature ? parseFloat(temperature) : null,
+      weight: weight_kg ? parseFloat(weight_kg) : null,
       chief_complaint,
       diagnosis,
       treatment_plan,
-      next_step,
-      specialized_data: {
-        ...(encounter.specialized_data || {}),
-        dental_procedure
-      }
+      status: 'COMPLETED'
     }, { transaction });
 
-    // 3. Database Mutation: INSERT into PRESCRIPTIONS with PRC Snapshot
+    const hasMeds = prescriptions && Array.isArray(prescriptions) && prescriptions.length > 0;
     if (hasMeds) {
+      await Prescription.destroy({ where: { encounter_id }, transaction });
+
       for (const rx of prescriptions) {
         if (rx.medication_name) {
           await Prescription.create({
@@ -115,50 +114,20 @@ export const saveClinical = async (req: AuthRequest, res: Response) => {
             dosage: rx.dosage,
             frequency: rx.frequency,
             duration_days: rx.duration_days || 0,
-            prescriber_prc_number: prcNumber // SNAPSHOT
+            prescriber_prc_number: prcNumber || 'N/A'
           }, { transaction });
         }
       }
     }
 
-    // 4. State Machine: Phase 3 State Change
-    let finalStatus = 'COMPLETED';
-    if (hasMeds || next_step === 'PHARMACY') {
-      finalStatus = 'PHARMACY';
-    } else if (next_step === 'REFERRED_OUT') {
-      finalStatus = 'REFERRED_OUT';
-    }
-
-    await queue.update({ status: finalStatus }, { transaction });
-
     await transaction.commit();
     res.status(200).json({ 
-      message: `Consultation finalized. Patient status: ${finalStatus}`, 
+      message: 'Encounter finalized and completed.', 
       encounter 
     });
   } catch (error: any) {
     await transaction.rollback();
-    console.error('Phase 3 Consultation Error:', error);
-    res.status(500).json({ error: error.message || 'Internal server error.' });
-  }
-};
-
-/**
- * Phase 4: Fulfillment (Pharmacist)
- */
-export const completeDispensing = async (req: AuthRequest, res: Response) => {
-  try {
-    const { queue_id } = req.body;
-    const queue = await Queue.findByPk(queue_id as string);
-    
-    if (!queue) return res.status(404).json({ error: 'Queue record not found.' });
-
-    // Phase 4 Mutation: Finalize patient journey
-    await queue.update({ status: 'COMPLETED' });
-
-    res.status(200).json({ message: 'Medication dispensed. Patient visit completed.', queue_id });
-  } catch (error: any) {
-    console.error('Phase 4 Fulfillment Error:', error);
+    console.error('Consultation Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error.' });
   }
 };

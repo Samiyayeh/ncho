@@ -9,22 +9,19 @@ export function PatientPassport() {
   const [patient, setPatient] = useState<any>(null);
   const [encounters, setEncounters] = useState<any[]>([]);
   const [qrToken, setQrToken] = useState<string>("");
-  const [activeQueue, setActiveQueue] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileData, encounterData, qrData, queueData] = await Promise.all([
+        const [profileData, encounterData, qrData] = await Promise.all([
           api.get('/patient/profile'),
           api.get('/patient/encounters'),
-          api.get('/patient/qr-token'),
-          api.get('/patient/active-queue')
+          api.get('/patient/qr-token')
         ]);
         setPatient(profileData);
         setEncounters(encounterData);
         setQrToken(qrData.token_string);
-        setActiveQueue(queueData);
       } catch (error) {
         console.error("Failed to fetch passport data", error);
       } finally {
@@ -55,72 +52,25 @@ export function PatientPassport() {
       </header>
 
       <div className="max-w-md mx-auto px-4 space-y-4">
-        {/* Queue Action Card */}
-        {patient.verification_status === 'VERIFIED' && (
-          <Link 
-            to="/patient/queue" 
-            className={`flex items-center justify-between p-6 rounded-2xl shadow-lg transition-all hover:scale-[1.02] text-white ${
-              activeQueue ? 'bg-gradient-to-r from-teal-600 to-teal-700 shadow-teal-100' : 'bg-gradient-to-r from-blue-600 to-blue-700 shadow-blue-200'
-            }`}
-          >
-            <div>
-              <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
-                {activeQueue ? `Active: ${activeQueue.queue_number}` : 'Join Clinic Queue'}
-                <Clock className={`w-5 h-5 ${activeQueue ? 'animate-none' : 'animate-pulse'}`} />
-              </h3>
-              <p className="text-blue-50 text-sm">
-                {activeQueue ? `Status: ${activeQueue.status.replace('_', ' ')}` : 'Secure your spot for consultation'}
-              </p>
-            </div>
-            {activeQueue ? (
-              <div className="flex flex-col items-center">
-                <span className="text-xs font-bold uppercase opacity-60 mb-1">Position</span>
-                <span className="text-2xl font-black">#?</span> 
-              </div>
-            ) : (
-              <Activity className="w-8 h-8 opacity-50" />
-            )}
-          </Link>
-        )}
-
-        {/* QR Code Card or Verification Warning */}
-        {patient.verification_status !== 'VERIFIED' ? (
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl shadow-md p-6">
-            <div className="flex flex-col items-center text-center">
-              <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
-              <h3 className="text-xl font-bold text-red-900 mb-2">Verification Required</h3>
-              <p className="text-sm text-red-800 mb-4">
-                Your account is currently inactive. To protect your medical data and join queues, please submit a valid Government ID for verification.
-              </p>
-              <Link 
-                to="/patient/verification"
-                className="px-6 py-2 bg-red-600 text-white rounded-lg font-bold shadow hover:bg-red-700 transition"
-              >
-                Go to Verification Center
-              </Link>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Your Health Passport QR CODE</h3>
+          <div className="bg-gray-50 rounded-lg p-6 mb-4 flex justify-center">
+            <div className="w-48 h-48 bg-white border-4 border-gray-300 rounded-lg flex items-center justify-center p-2">
+              {qrToken ? (
+                <QRCode value={qrToken} size={160} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+              ) : (
+                <div className="animate-pulse bg-gray-200 w-full h-full rounded"></div>
+              )}
             </div>
           </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Your Health Passport QR CODE</h3>
-            <div className="bg-gray-50 rounded-lg p-6 mb-4 flex justify-center">
-              <div className="w-48 h-48 bg-white border-4 border-gray-300 rounded-lg flex items-center justify-center p-2">
-                {qrToken ? (
-                  <QRCode value={qrToken} size={160} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
-                ) : (
-                  <div className="animate-pulse bg-gray-200 w-full h-full rounded"></div>
-                )}
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">Patient ID</p>
-              <p className="text-xl font-bold text-blue-600 mb-4">{patient.patient_id}</p>
-              <p className="text-xs text-gray-500">
-                Show this QR code to any NCHO healthcare provider to grant access to your health records
-              </p>
-            </div>
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">Patient ID</p>
+            <p className="text-xl font-bold text-blue-600 mb-4">{patient.patient_id}</p>
+            <p className="text-xs text-gray-500">
+              Show this QR code to any NCHO healthcare provider to grant access to your health records
+            </p>
           </div>
-        )}
+        </div>
 
         {/* Vitals Grid */}
         <div className="grid grid-cols-2 gap-4">

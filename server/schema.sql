@@ -47,7 +47,7 @@ CREATE TABLE `encounters` (
   `encounter_id` int(11) NOT NULL,
   `patient_id` varchar(50) NOT NULL,
   `provider_id` varchar(50) NOT NULL,
-  `queue_id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `status` enum('IN_PROGRESS','COMPLETED') NOT NULL DEFAULT 'IN_PROGRESS',
   `encounter_date` datetime DEFAULT NULL,
   `bp_systolic` int(11) DEFAULT NULL,
   `bp_diastolic` int(11) DEFAULT NULL,
@@ -160,21 +160,7 @@ CREATE TABLE `qr_access_tokens` (
 
 -- --------------------------------------------------------
 
---
--- Table structure for table `queues`
---
 
-CREATE TABLE `queues` (
-  `queue_id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `patient_id` varchar(50) NOT NULL,
-  `queue_number` varchar(20) NOT NULL,
-  `date` date DEFAULT NULL,
-  `status` enum('PENDING_TRIAGE','WAITING_FOR_PROVIDER','IN_CONSULTATION','PHARMACY','COMPLETED','REFERRED_OUT') NOT NULL DEFAULT 'PENDING_TRIAGE',
-  `service_type` enum('OUTPATIENT','MEDICINE_DISPENSING','YAKAP','TB_DOTS','SOCIAL_HYGIENE','DENTAL','HEALTH_PROGRAM') NOT NULL,
-  `pre_triage_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`pre_triage_data`)),
-  `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -210,8 +196,7 @@ ALTER TABLE `audit_logs`
 ALTER TABLE `encounters`
   ADD PRIMARY KEY (`encounter_id`),
   ADD KEY `patient_id` (`patient_id`),
-  ADD KEY `provider_id` (`provider_id`),
-  ADD KEY `queue_id` (`queue_id`);
+  ADD KEY `provider_id` (`provider_id`);
 
 --
 -- Indexes for table `medical_records`
@@ -251,12 +236,7 @@ ALTER TABLE `qr_access_tokens`
   ADD UNIQUE KEY `token_string` (`token_string`),
   ADD KEY `patient_id` (`patient_id`);
 
---
--- Indexes for table `queues`
---
-ALTER TABLE `queues`
-  ADD PRIMARY KEY (`queue_id`),
-  ADD KEY `patient_id` (`patient_id`);
+
 
 --
 -- Indexes for table `referrals`
@@ -321,8 +301,7 @@ ALTER TABLE `audit_logs`
 --
 ALTER TABLE `encounters`
   ADD CONSTRAINT `encounters_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`patient_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `encounters_ibfk_2` FOREIGN KEY (`provider_id`) REFERENCES `providers` (`provider_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `encounters_ibfk_3` FOREIGN KEY (`queue_id`) REFERENCES `queues` (`queue_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `encounters_ibfk_2` FOREIGN KEY (`provider_id`) REFERENCES `providers` (`provider_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `medical_records`
@@ -344,11 +323,7 @@ ALTER TABLE `prescriptions`
 ALTER TABLE `qr_access_tokens`
   ADD CONSTRAINT `qr_access_tokens_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`patient_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
---
--- Constraints for table `queues`
---
-ALTER TABLE `queues`
-  ADD CONSTRAINT `queues_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`patient_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
 
 --
 -- Constraints for table `referrals`

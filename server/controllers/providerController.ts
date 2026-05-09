@@ -309,7 +309,7 @@ export const reviewPatientVerification = async (req: AuthRequest, res: Response)
       return res.status(400).json({ error: 'Invalid status. Must be VERIFIED or REJECTED.' });
     }
 
-    const patient = await Patient.findByPk(patient_id);
+    const patient = await Patient.findByPk(patient_id as string);
     if (!patient) return res.status(404).json({ error: 'Patient not found' });
 
     if (status === 'VERIFIED') {
@@ -352,7 +352,7 @@ export const viewIdImage = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid filename' });
     }
 
-    const filePath = path.join(process.cwd(), 'uploads', 'ids', filename);
+    const filePath = path.join(process.cwd(), 'uploads', 'ids', filename as string);
     
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Image not found' });

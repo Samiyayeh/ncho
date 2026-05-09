@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import { getPatientProfile, getPatientRecords, getPatientEncounters, getPatientPrivacyLogs, getQrToken, getActiveQueue, submitIdVerification } from '../controllers/patientController';
+import { getPatientProfile, getPatientRecords, getPatientEncounters, getPatientPrivacyLogs, getQrToken } from '../controllers/patientController';
 import { authenticateToken } from '../middlewares/authMiddleware';
-import { uploadId } from '../config/multer';
 import { auditLogger } from '../middlewares/auditLogger';
 
 const router = Router();
@@ -21,13 +20,7 @@ router.get('/encounters', auditLogger('Viewed own encounter history'), getPatien
 // GET /api/patient/privacy-logs
 router.get('/privacy-logs', getPatientPrivacyLogs); // No audit log on this one to avoid infinite loop
 
-// GET /api/patient/active-queue
-router.get('/active-queue', getActiveQueue);
-
 // GET /api/patient/qr-token
-router.get('/qr-token', getQrToken);
-
-// POST /api/patient/verify-upload
-router.post('/verify-upload', uploadId.single('id_image'), submitIdVerification);
+router.get('/qr-token', auditLogger('Accessed Health Passport QR Code'), getQrToken);
 
 export default router;

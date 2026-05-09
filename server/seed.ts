@@ -6,7 +6,6 @@ import { Prescription } from './models/Prescription';
 import { MedicalRecord } from './models/MedicalRecord';
 import { AuditLog } from './models/AuditLog';
 import { QrAccessToken } from './models/QrAccessToken';
-import { Queue } from './models/Queue'; 
 // import { Referral } from './models/Referral';
 import bcrypt from 'bcrypt';
 
@@ -37,8 +36,6 @@ async function seed() {
         blood_type: 'O+',
         allergies: 'Penicillin',
         contact_number: '09171234567',
-        verification_status: 'VERIFIED',
-        id_type: 'PHILHEALTH',
         voter_registered: true,
         household_head: true,
         chronic_conditions: 'Hypertension',
@@ -55,8 +52,6 @@ async function seed() {
         blood_type: 'A-',
         allergies: 'Peanuts',
         contact_number: '09181234567',
-        verification_status: 'VERIFIED',
-        id_type: 'PHILSYS',
         voter_registered: true,
         household_head: false,
         chronic_conditions: null,
@@ -72,8 +67,6 @@ async function seed() {
         gender: 'Male',
         blood_type: 'B+',
         contact_number: '09191234567',
-        verification_status: 'VERIFIED',
-        id_type: 'PHILSYS',
         voter_registered: false,
         household_head: false,
         chronic_conditions: 'Asthma',

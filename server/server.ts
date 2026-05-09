@@ -7,7 +7,6 @@ import path from 'path';
 import authRoutes from './routes/authRoutes';
 import patientRoutes from './routes/patientRoutes';
 import providerRoutes from './routes/providerRoutes';
-import queueRoutes from './routes/queueRoutes';
 import encounterRoutes from './routes/encounterRoutes';
 
 // Environment is loaded via config/db.ts
@@ -28,7 +27,6 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api/provider', providerRoutes);
-app.use('/api/queue', queueRoutes);
 app.use('/api/encounters', encounterRoutes);
 
 // Basic route for testing

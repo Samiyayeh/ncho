@@ -1,5 +1,5 @@
 import { Phone, MapPin, Calendar, Activity, FileText, Clock, Shield, Pill, ArrowLeft } from "lucide-react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useParams, useSearchParams, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
 import { api } from "../api/client";
@@ -13,6 +13,19 @@ export function ClinicalView() {
   const [encounters, setEncounters] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const [startingEncounter, setStartingEncounter] = useState(false);
+
+  const handleStartEncounter = async () => {
+    try {
+      setStartingEncounter(true);
+      const { encounter_id } = await api.post('/encounters/start', { patient_id: patientId });
+      navigate(`/provider/encounter/${encounter_id}`);
+    } catch (err: any) {
+      alert(err.message || 'Failed to start encounter');
+      setStartingEncounter(false);
+    }
+  };
 
   useEffect(() => {
     if (!patientId) return;
@@ -61,10 +74,14 @@ export function ClinicalView() {
                 Return to Active Consultation
               </Link>
             )}
-            <div className="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm font-bold flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Active visits must be started via Live Queue
-            </div>
+            <button
+              onClick={handleStartEncounter}
+              disabled={startingEncounter}
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition flex items-center gap-2 font-bold shadow-lg"
+            >
+              <Activity className="w-5 h-5" />
+              {startingEncounter ? 'Starting...' : 'Start New Encounter'}
+            </button>
           </div>
         </div>
 

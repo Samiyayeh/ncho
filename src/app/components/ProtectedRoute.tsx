@@ -21,7 +21,7 @@ export function ProtectedRoute({ allowedRole }: ProtectedRouteProps) {
     if (user.role === 'patient') {
       return <Navigate to="/patient" replace />;
     } else {
-      return <Navigate to="/provider/dashboard" replace />;
+      return <Navigate to="/provider/analytics" replace />;
     }
   }
 

@@ -3,7 +3,6 @@ import { Patient } from './Patient';
 import { Provider } from './Provider';
 import { Prescription } from './Prescription';
 import { MedicalRecord } from './MedicalRecord';
-import { Queue } from './Queue';
 import { Referral } from './Referral';
 
 @Table({
@@ -38,15 +37,12 @@ export class Encounter extends Model {
   @BelongsTo(() => Provider, { as: 'Provider', onDelete: 'CASCADE' })
   declare Provider: Provider;
 
-  @ForeignKey(() => Queue)
   @Column({
-    type: DataType.UUID,
-    allowNull: true // Optional for legacy encounters or direct uploads
+    type: DataType.ENUM('IN_PROGRESS', 'COMPLETED'),
+    defaultValue: 'IN_PROGRESS',
+    allowNull: false
   })
-  declare queue_id: string;
-
-  @BelongsTo(() => Queue)
-  declare Queue: Queue;
+  declare status: string;
 
   @Column({
     type: DataType.DATE,

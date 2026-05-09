@@ -1,20 +1,18 @@
 import { Router } from 'express';
-import { saveTriage, saveClinical, completeDispensing } from '../controllers/clinicalController';
+import { startEncounter, saveClinical, getEncounter, getAnalyticsEncounters } from '../controllers/clinicalController';
 import { authenticateToken } from '../middlewares/authMiddleware';
-import { requirePRC } from '../middlewares/roleMiddleware';
 import { auditLogger } from '../middlewares/auditLogger';
 
 const router = Router();
 
 router.use(authenticateToken);
 
-// Phase 2: Gateway (Triage Nurse Dashboard)
-router.post('/triage', requirePRC, auditLogger('Phase 2: Recorded Patient Vitals'), saveTriage);
+router.get('/analytics', auditLogger('Accessed Analytics'), getAnalyticsEncounters);
 
-// Phase 3: Consultation (Provider Dashboard)
-router.post('/clinical', requirePRC, auditLogger('Phase 3: Finalized Clinical Consultation'), saveClinical);
+router.get('/:encounter_id', auditLogger('Accessed Encounter Data'), getEncounter);
 
-// Phase 4: Fulfillment (Pharmacist Dashboard)
-router.post('/dispensing', requirePRC, auditLogger('Phase 4: Dispensed Medication & Completed Visit'), completeDispensing);
+router.post('/start', auditLogger('Started a new encounter'), startEncounter);
+
+router.post('/clinical', auditLogger('Finalized Clinical Consultation'), saveClinical);
 
 export default router;

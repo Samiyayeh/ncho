@@ -3,7 +3,6 @@ import { Encounter } from './Encounter';
 import { MedicalRecord } from './MedicalRecord';
 import { QrAccessToken } from './QrAccessToken';
 import { AuditLog } from './AuditLog';
-import { Queue } from './Queue';
 
 @Table({
   tableName: 'PATIENTS',
@@ -71,26 +70,6 @@ export class Patient extends Model {
   @Column(DataType.TEXT)
   declare chronic_conditions: string;
 
-  @Column({
-    type: DataType.ENUM('UNVERIFIED', 'PENDING_REVIEW', 'VERIFIED', 'REJECTED'),
-    defaultValue: 'UNVERIFIED',
-    allowNull: false
-  })
-  declare verification_status: string;
-
-  @Column({
-    type: DataType.ENUM('PHILHEALTH', 'PHILSYS', 'NONE'),
-    defaultValue: 'NONE',
-    allowNull: false
-  })
-  declare id_type: string;
-
-  @Column(DataType.STRING(100))
-  declare id_number: string;
-
-  @Column(DataType.STRING(255))
-  declare id_image_url: string;
-
   @HasMany(() => Encounter)
   declare encounters: Encounter[];
 
@@ -102,7 +81,4 @@ export class Patient extends Model {
 
   @HasMany(() => AuditLog)
   declare audit_logs: AuditLog[];
-
-  @HasMany(() => Queue)
-  declare queues: Queue[];
 }

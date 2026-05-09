@@ -33,16 +33,13 @@ export function ProviderAnalyticsDashboard() {
     const fetchAnalytics = async () => {
       setLoading(true);
       try {
-        let query = `/queue/daily?status=all`;
+        let query = `/encounters/analytics?status=all`;
         if (timeframe === 'today') {
           query += `&date=${new Date().toISOString().split('T')[0]}`;
         } else {
           query += `&date=all`;
         }
         
-        // Add status filters similar to ProviderDashboard if needed,
-        // but for analytics, seeing the whole clinic's data is often better.
-        // We will fetch everything the user is authorized to see.
         const data = await api.get(query);
         setQueues(data);
       } catch (error) {
@@ -57,7 +54,7 @@ export function ProviderAnalyticsDashboard() {
   // Aggregate Data
   const totalQueued = queues.length;
   const totalCompleted = queues.filter(q => q.status === 'COMPLETED').length;
-  const totalPendingTriage = queues.filter(q => q.status === 'PENDING_TRIAGE').length;
+  const totalPendingTriage = queues.filter(q => q.status === 'IN_PROGRESS').length;
 
   // Gender Demographics
   const genderMap: Record<string, number> = {};
