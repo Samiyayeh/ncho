@@ -1,15 +1,26 @@
 import { Heart, Lock, AlertCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router";
-import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
+import React, { useState, useEffect } from "react";
 import { api, isTestMode } from "../api/client";
 
 export function Login() {
-  const [role, setRole] = useState<"patient" | "provider">("patient");
+  const [searchParams] = useSearchParams();
+  const initialRole = (searchParams.get("role") as "patient" | "provider") || "patient";
+
+  const [role, setRole] = useState<"patient" | "provider">(initialRole);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // If the URL role changes, update the state
+    const urlRole = searchParams.get("role") as "patient" | "provider";
+    if (urlRole && (urlRole === "patient" || urlRole === "provider")) {
+      setRole(urlRole);
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

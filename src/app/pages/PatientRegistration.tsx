@@ -1,10 +1,10 @@
 import { Heart, UserPlus, AlertCircle, QrCode, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { api } from "../api/client";
 
 export function PatientRegistration() {
-  const [step, setStep] = useState<"registration" | "unverified">("registration");
+  const navigate = useNavigate();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,7 +42,7 @@ export function PatientRegistration() {
 
     setLoading(true);
     try {
-      await api.post('/auth/register/patient', {
+      const data = await api.post('/auth/register/patient', {
         first_name: firstName,
         last_name: lastName,
         email,
@@ -54,7 +54,12 @@ export function PatientRegistration() {
         voter_registered: voterRegistered,
         household_head: householdHead
       });
-      setStep("unverified");
+      // Save token and user details to localStorage for auto-login
+      localStorage.setItem('ncho_token', data.token);
+      localStorage.setItem('ncho_user', JSON.stringify(data.user));
+
+      // Redirect to patient dashboard
+      navigate('/patient');
     } catch (err: any) {
       setError(err.message || "Failed to register account.");
     } finally {
@@ -62,97 +67,6 @@ export function PatientRegistration() {
     }
   };
 
-  if (step === "unverified") {
-    // ... (Keep existing unverified view, it uses email which is still available)
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 pb-8">
-        {/* Header */}
-        <header className="bg-white shadow-sm mb-6">
-          <div className="px-4 py-4">
-            <div className="flex items-center gap-3 mb-2">
-              <Heart className="w-6 h-6 text-blue-600" />
-              <h1 className="text-lg font-bold text-gray-900">NCHO Patient-Link</h1>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">Welcome, {firstName}</h2>
-            <p className="text-sm text-gray-600">Your account is pending verification</p>
-          </div>
-        </header>
-
-        <div className="max-w-md mx-auto px-4 space-y-4">
-          {/* Verification Alert Card */}
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-6 shadow-md">
-            <div className="flex flex-col md:flex-row gap-4 mb-2 items-start md:items-center">
-              <div className="flex gap-3 flex-1">
-                <AlertCircle className="w-8 h-8 text-yellow-600 flex-shrink-0" />
-                <div>
-                  <h3 className="text-xl font-bold text-yellow-900 mb-2">Account Unverified - Action Required</h3>
-                  <p className="text-sm text-yellow-800 mb-4">
-                    Your shell account has been created successfully. To activate your digital Health Passport,
-                    please submit a valid government ID for online verification.
-                  </p>
-                  <Link
-                    to="/patient/verification"
-                    className="inline-block px-6 py-2 bg-yellow-600 text-white rounded-lg font-bold shadow hover:bg-yellow-700 transition"
-                  >
-                    Go to Verification Center
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Disabled QR Code Placeholder */}
-          <div className="bg-white rounded-xl shadow-md p-6 opacity-50 pointer-events-none relative overflow-hidden">
-            <div className="absolute inset-0 bg-gray-100 bg-opacity-90 backdrop-blur-sm flex items-center justify-center z-10">
-              <div className="text-center">
-                <Lock className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <p className="font-bold text-gray-600">Verification Required</p>
-              </div>
-            </div>
-
-            <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Your Health Passport QR CODE</h3>
-            <div className="bg-gray-50 rounded-lg p-6 mb-4 flex justify-center">
-              <div className="w-48 h-48 bg-white border-4 border-gray-300 rounded-lg flex items-center justify-center">
-                <QrCode className="w-32 h-32 text-gray-300" />
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-400 mb-2">Patient ID</p>
-              <p className="text-xl font-bold text-gray-400 mb-4">PENDING-VERIFICATION</p>
-            </div>
-          </div>
-
-          {/* Account Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Account Information</h3>
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-gray-600">Email Address</p>
-                <p className="font-bold text-gray-900">{email}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Full Name</p>
-                <p className="font-bold text-gray-900">{firstName} {lastName}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Account Status</p>
-                <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold">
-                  Unverified - Pending Activation
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <Link
-            to="/"
-            className="block w-full px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg text-center hover:bg-gray-50 transition"
-          >
-            Back to Home
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center py-12 px-4">
@@ -390,8 +304,8 @@ export function PatientRegistration() {
               <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
               <div>
                 <p className="text-sm text-blue-900">
-                  <span className="font-bold">Important:</span> This creates an unverified account only.
-                  You must visit NCHO in person to complete verification and activate your Health Passport.
+                  <span className="font-bold">Welcome!</span> Your account has been created successfully. 
+                  You now have access to your digital Health Passport.
                 </p>
               </div>
             </div>

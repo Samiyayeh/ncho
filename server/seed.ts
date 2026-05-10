@@ -154,6 +154,30 @@ async function seed() {
     }
     console.log(`${providers.length} Providers seeded (All roles covered).`);
 
+    // 4. Seed Encounters (Ensure every patient has a first encounter)
+    console.log('Seeding initial encounters...');
+    const patientList = await Patient.findAll();
+    const providerList = await Provider.findAll({ where: { role_type: 'PHYSICIAN' } });
+    const doctor = providerList[0];
+
+    for (const patient of patientList) {
+      await Encounter.create({
+        patient_id: patient.patient_id,
+        provider_id: doctor.provider_id,
+        status: 'COMPLETED',
+        encounter_date: new Date(new Date().setDate(new Date().getDate() - 7)), // 7 days ago
+        bp_systolic: 120,
+        bp_diastolic: 80,
+        heart_rate: 72,
+        temperature: 36.5,
+        weight: 65.0,
+        chief_complaint: 'Initial checkup and health assessment.',
+        diagnosis: 'Healthy / Routine Checkup',
+        treatment_plan: 'Continue healthy lifestyle and balanced diet.'
+      } as any);
+    }
+    console.log(`Initial encounters created for ${patientList.length} patients.`);
+
     console.log('--- Seeding Completed Successfully ---');
     console.log('Passwords for all accounts: password123');
     process.exit(0);

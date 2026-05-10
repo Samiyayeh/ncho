@@ -4,8 +4,9 @@ import { Encounter } from '../models/Encounter';
 import { Patient } from '../models/Patient';
 import { Prescription } from '../models/Prescription';
 import { Provider } from '../models/Provider';
+import { AuditLog } from '../models/AuditLog';
 import sequelize from '../config/db';
-import { Op } from 'sequelize';
+import { Op, fn, col, literal } from 'sequelize';
 
 export const startEncounter = async (req: AuthRequest, res: Response) => {
   try {
@@ -17,6 +18,15 @@ export const startEncounter = async (req: AuthRequest, res: Response) => {
     const patient = await Patient.findByPk(patient_id);
     if (!patient) return res.status(404).json({ error: 'Patient not found.' });
 
+    // If an IN_PROGRESS encounter already exists for this patient, resume it
+    const existing = await (Encounter as any).findOne({
+      where: { patient_id, status: 'IN_PROGRESS' }
+    });
+
+    if (existing) {
+      return res.status(200).json({ encounter_id: existing.encounter_id, resumed: true });
+    }
+
     const encounter = await Encounter.create({
       patient_id,
       provider_id,
@@ -24,7 +34,7 @@ export const startEncounter = async (req: AuthRequest, res: Response) => {
       status: 'IN_PROGRESS'
     } as any);
 
-    res.status(200).json({ encounter_id: encounter.encounter_id });
+    res.status(200).json({ encounter_id: encounter.encounter_id, resumed: false });
   } catch (error: any) {
     console.error('Start Encounter Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error.' });
@@ -49,10 +59,26 @@ export const getEncounter = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const cancelEncounter = async (req: AuthRequest, res: Response) => {
+  try {
+    const { encounter_id } = req.params;
+    const encounter = await Encounter.findByPk(encounter_id as string);
+    if (!encounter) return res.status(404).json({ error: 'Encounter not found.' });
+    if (encounter.status !== 'IN_PROGRESS') {
+      return res.status(400).json({ error: 'Only IN_PROGRESS encounters can be cancelled.' });
+    }
+    await encounter.destroy();
+    res.status(200).json({ message: 'Encounter cancelled and removed.' });
+  } catch (error: any) {
+    console.error('Cancel Encounter Error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error.' });
+  }
+};
+
 export const getAnalyticsEncounters = async (req: AuthRequest, res: Response) => {
   try {
     const { date } = req.query;
-    let whereClause: any = {};
+    let whereClause: any = { status: 'COMPLETED' };
     if (date && date !== 'all') {
       const targetDate = new Date(date as string);
       const nextDate = new Date(targetDate);
@@ -79,7 +105,9 @@ export const saveClinical = async (req: AuthRequest, res: Response) => {
     const { 
       encounter_id, 
       bp_systolic, bp_diastolic, temperature, weight_kg,
-      chief_complaint, diagnosis, treatment_plan, prescriptions 
+      chief_complaint, diagnosis, treatment_plan, prescriptions,
+      // First-encounter patient fields
+      blood_type, allergies
     } = req.body;
     
     const provider_id = req.user?.id;
@@ -101,6 +129,19 @@ export const saveClinical = async (req: AuthRequest, res: Response) => {
       treatment_plan,
       status: 'COMPLETED'
     }, { transaction });
+
+    // If first-encounter patient fields (blood_type, allergies) are provided, update patient record
+    if (blood_type !== undefined || allergies !== undefined) {
+      const patient = await Patient.findByPk(encounter.patient_id, { transaction });
+      if (patient) {
+        const updates: any = {};
+        if (blood_type !== undefined && blood_type !== '') updates.blood_type = blood_type;
+        if (allergies !== undefined) updates.allergies = allergies;
+        if (Object.keys(updates).length > 0) {
+          await patient.update(updates, { transaction });
+        }
+      }
+    }
 
     const hasMeds = prescriptions && Array.isArray(prescriptions) && prescriptions.length > 0;
     if (hasMeds) {
@@ -128,6 +169,70 @@ export const saveClinical = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     await transaction.rollback();
     console.error('Consultation Error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error.' });
+  }
+};
+
+/**
+ * GET /encounters/dashboard-stats
+ * Returns KPI counters for today + all-time, and top 5 diagnoses.
+ */
+export const getDashboardStats = async (req: AuthRequest, res: Response) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [activeSessions, completedToday, allTimeCompleted, diagnosisRows] = await Promise.all([
+      Encounter.count({ where: { status: 'IN_PROGRESS' } }),
+      Encounter.count({ where: { encounter_date: { [Op.gte]: today, [Op.lt]: tomorrow }, status: 'COMPLETED' } }),
+      Encounter.count({ where: { status: 'COMPLETED' } }),
+      Encounter.findAll({
+        attributes: [
+          'diagnosis',
+          [fn('COUNT', col('diagnosis')), 'count']
+        ],
+        where: { status: 'COMPLETED', diagnosis: { [Op.not]: null, [Op.ne]: '' } },
+        group: ['diagnosis'],
+        order: [[literal('count'), 'DESC']],
+        limit: 5,
+        raw: true
+      })
+    ]);
+
+    res.status(200).json({
+      activeSessions,
+      completedToday,
+      allTimeCompleted,
+      topDiagnoses: (diagnosisRows as any[]).map((r: any) => ({
+        name: r.diagnosis,
+        count: parseInt(r.count)
+      }))
+    });
+  } catch (error: any) {
+    console.error('Dashboard Stats Error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error.' });
+  }
+};
+
+/**
+ * GET /encounters/dpa-feed
+ * Returns the 20 most recent audit log entries for security monitoring.
+ */
+export const getDpaFeed = async (req: AuthRequest, res: Response) => {
+  try {
+    const logs = await AuditLog.findAll({
+      include: [
+        { model: Provider, as: 'Provider', attributes: ['first_name', 'last_name'] },
+        { model: Patient, as: 'Patient', attributes: ['first_name', 'last_name', 'patient_id'] }
+      ],
+      order: [['timestamp', 'DESC']],
+      limit: 20
+    });
+    res.status(200).json(logs);
+  } catch (error: any) {
+    console.error('DPA Feed Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error.' });
   }
 };

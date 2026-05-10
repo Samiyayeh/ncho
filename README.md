@@ -70,7 +70,7 @@ npm run seed:test
 ### 2. Run the Servers in Test Mode
 Ensure you are using the test database and port:
 *   **Backend**: `npm run dev:test` (runs on port 5001)
-*   **Frontend**: `npm run dev`
+*   **Frontend**: `npm run dev:test` (points to port 5001)
 
 ### 3. Clinical Workflow Guide
 Follow these steps to test the full patient journey:
@@ -105,7 +105,8 @@ Follow these steps to test the full patient journey:
 ## 🛠️ Development Scripts
 
 ### Root Directory
-*   `npm run dev`: Starts the Vite frontend.
+*   `npm run dev`: Starts the Vite frontend pointing to main server (Port 5000).
+*   `npm run dev:test`: Starts the Vite frontend pointing to test server (Port 5001).
 *   `npm run build`: Builds the frontend for production.
 
 ### Server Directory

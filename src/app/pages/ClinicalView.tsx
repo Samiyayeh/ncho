@@ -19,8 +19,13 @@ export function ClinicalView() {
   const handleStartEncounter = async () => {
     try {
       setStartingEncounter(true);
-      const { encounter_id } = await api.post('/encounters/start', { patient_id: patientId });
-      navigate(`/provider/encounter/${encounter_id}`);
+      const res = await api.post('/encounters/start', { patient_id: patientId });
+      if (res.resumed) {
+        // Navigate directly - the workspace will show a "resumed" banner
+        navigate(`/provider/encounter/${res.encounter_id}?resumed=true`);
+      } else {
+        navigate(`/provider/encounter/${res.encounter_id}`);
+      }
     } catch (err: any) {
       alert(err.message || 'Failed to start encounter');
       setStartingEncounter(false);

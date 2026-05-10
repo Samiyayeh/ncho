@@ -21,7 +21,7 @@ export const registerPatient = async (req: Request, res: Response) => {
     const password_hash = await bcrypt.hash(password, 10);
     const patient_id = `NCH-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    await Patient.create({
+    const patient = await Patient.create({
       patient_id, first_name, last_name, email, password_hash, date_of_birth, gender, contact_number, address,
       voter_registered: voter_registered === 'yes' || voter_registered === true,
       household_head: household_head === 'yes' || household_head === true,
@@ -30,7 +30,20 @@ export const registerPatient = async (req: Request, res: Response) => {
       chronic_conditions
     });
 
-    res.status(201).json({ message: 'Patient registered successfully', patient_id });
+    // Generate token for auto-login
+    const token = jwt.sign({ id: patient_id, role: 'patient', role_type: null }, JWT_SECRET, { expiresIn: '8h' });
+
+    res.status(201).json({ 
+      message: 'Patient registered successfully', 
+      token,
+      user: {
+        id: patient_id,
+        first_name: patient.first_name,
+        last_name: patient.last_name,
+        role: 'patient',
+        role_type: null
+      }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error.' });

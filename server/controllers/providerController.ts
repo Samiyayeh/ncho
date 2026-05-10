@@ -273,7 +273,7 @@ export const getPatientEncounters = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Patient ID is required.' });
     }
     const encounters = await Encounter.findAll({
-      where: { patient_id: patientId },
+      where: { patient_id: patientId, status: 'COMPLETED' },
       include: [
         { model: Provider, as: 'Provider', attributes: ['first_name', 'last_name', 'specialty'] },
         { model: Prescription, as: 'Prescriptions' }

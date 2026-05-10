@@ -271,7 +271,7 @@ export function MedicalRecordUpload() {
           {/* Action Buttons */}
           <div className="flex gap-4 justify-end border-t pt-6">
             <Link
-              to="/provider/dashboard"
+              to="/provider/analytics"
               className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
             >
               Cancel

@@ -262,7 +262,7 @@ export function DigitalITR() {
 
         {/* Footer Actions */}
         <div className="flex gap-4 justify-end">
-          <Link to={patient ? `/provider/clinical/${patient.patient_id}` : '/provider/dashboard'}
+          <Link to={patient ? `/provider/clinical/${patient.patient_id}` : '/provider/analytics'}
             className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center gap-2">
             <X className="w-5 h-5" />
             Cancel
