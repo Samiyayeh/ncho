@@ -46,8 +46,9 @@ Ensure you have **MySQL** installed and running.
 To populate the system with test data:
 *   **Basic Seed:** `npm run seed` (Wipes `ncho_patient_link`, creates base providers/patients)
 *   **Basic Test Seed:** `npm run seed:test` (Wipes `ncho_test`)
-*   **Analytics Seed:** `npm run seed:analytics` (Generates 150+ patients/encounters for Dashboard testing)
-*   **Analytics Test Seed:** `npm run seed:analytics:test` (Targets `ncho_test` with massive data)
+*   **Dashboard Seed:** `npm run seed:dashboard` (Generates 100+ realistic encounters specifically for dashboard testing)
+*   **Dashboard Test Seed:** `npm run seed:dashboard:test` (Targets `ncho_test` with realistic data)
+*   **Analytics Seed:** `npm run seed:analytics` (Legacy: Generates 150+ patients/encounters)
 
 ### 4. Frontend Setup
 1.  **Navigate to root:** `cd ..`
@@ -61,7 +62,7 @@ To populate the system with test data:
 Since automated tests have been removed, follow this manual guide to verify the clinical workflow.
 
 ### 1. Reset the Test Environment
-Always start with a clean database to ensure John Doe is in the queue:
+Always start with a clean database for a fresh test state:
 ```bash
 # In the /server terminal
 npm run seed:test
@@ -72,15 +73,15 @@ Ensure you are using the test database and port:
 *   **Backend**: `npm run dev:test` (runs on port 5001)
 *   **Frontend**: `npm run dev:test` (points to port 5001)
 
-### 3. Clinical Workflow Guide
-Follow these steps to test the full patient journey:
+### 3. Clinical Workflow Guide (Scan-to-Start)
+Follow these steps to test the streamlined clinical journey:
 
 | Step | Role | Login Email | Action |
 | :--- | :--- | :--- | :--- |
-| **0. Join Queue**| Patient | `john.doe@example.com` | Navigate to **Queue** tab, select a service, and click **Join Queue**. |
-| **1. Triage** | Nurse | `bob.ross@ncho.gov` | Find **John Doe**, click **Start Triage**, enter vitals. |
-| **2. Consult** | Physician | `alice.walker@ncho.gov` | Find **John Doe**, click **Consult**, enter diagnosis/Rx, select **Refer to Pharmacy**. |
-| **3. Dispense** | Pharmacist | `charlie.brown@ncho.gov` | Find **John Doe**, click **Consult**, verify meds, click **Confirm Dispensing**. |
+| **1. Identity** | Patient | `john.doe@example.com` | View **Health Passport** to display your unique QR code. |
+| **2. Access** | Provider | `alice.walker@ncho.gov` | Use **Patient Directory**, scan QR or enter ID, then click **Start New Encounter**. |
+| **3. Consult** | Provider | `alice.walker@ncho.gov` | Enter vitals, diagnosis, and prescriptions in the **Encounter Workspace**. |
+| **4. Fulfillment**| Pharmacist | `charlie.brown@ncho.gov` | Find patient, review prescribed meds, and click **Confirm Dispensing**. |
 
 **Passwords for all accounts**: `password123`
 
@@ -93,7 +94,7 @@ Follow these steps to test the full patient journey:
 | **John Doe** | Patient | `john.doe@example.com` |
 | **Jane Smith** | Patient | `jane.smith@example.com` |
 | **Alice Walker** | Physician | `alice.walker@ncho.gov` |
-| **Bob Ross** | Triage Nurse | `bob.ross@ncho.gov` |
+| **Bob Ross** | Clinical Staff | `bob.ross@ncho.gov` |
 | **Charlie Brown**| Pharmacist | `charlie.brown@ncho.gov` |
 | **Diana Prince** | Dentist | `diana.prince@ncho.gov` |
 | **Ethan Hunt** | Social Worker| `ethan.hunt@ncho.gov` |
@@ -114,5 +115,6 @@ Follow these steps to test the full patient journey:
 *   `npm run dev:test`: Starts backend using the test database.
 *   `npm run seed`: Resets and seeds the dev database.
 *   `npm run seed:test`: Resets and seeds the test database.
-*   `npm run seed:analytics`: Generates 150+ patients/encounters for Dashboard testing.
-*   `npm run seed:analytics:test`: Targets the test database with massive data for visualization.
+*   `npm run seed:dashboard`: Generates 100+ realistic encounters for visualization.
+*   `npm run seed:dashboard:test`: Targets the test database with realistic visualization data.
+*   `npm run seed:analytics`: Legacy: Generates 150+ patients/encounters.

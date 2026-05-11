@@ -19,7 +19,7 @@ export function PublicRoute() {
       if (user.role === 'patient') {
         return <Navigate to="/patient" replace />;
       } else if (user.role === 'provider' || user.role === 'admin') {
-        return <Navigate to="/provider/analytics" replace />;
+        return <Navigate to="/provider/dashboard" replace />;
       }
     } catch (e) {
       // If parsing fails, treat as not logged in

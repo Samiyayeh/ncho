@@ -38,8 +38,8 @@ app.get('/', (req: Request, res: Response) => {
 const startServer = async () => {
   await testConnection();
     // Synchronize Sequelize models with the database
-    // Architectural sync complete. Returning to standard sync for stability.
-    await sequelize.sync({ alter: true });
+    // Disabled 'alter: true' to prevent deadlocks during frequent nodemon restarts.
+    await sequelize.sync();
   console.log('Sequelize models synchronized with the database.');
 
  app.listen(port, () => {

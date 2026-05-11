@@ -61,6 +61,12 @@ export class Patient extends Model {
   @Column(DataType.TEXT)
   declare address: string;
 
+  @Column({
+    type: DataType.ENUM('PENDING', 'VERIFIED', 'REJECTED', 'PENDING_REVIEW'),
+    defaultValue: 'PENDING'
+  })
+  declare verification_status: string;
+
   @Column(DataType.BOOLEAN)
   declare voter_registered: boolean;
 

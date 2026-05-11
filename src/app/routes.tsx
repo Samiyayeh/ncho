@@ -5,7 +5,7 @@ import { PatientRegistration } from "./pages/PatientRegistration";
 import { PatientPassport } from "./pages/PatientPassport";
 import { PatientProfile } from "./pages/PatientProfile";
 import { ProviderPortal } from "./pages/ProviderPortal";
-import { ProviderAnalyticsDashboard } from "./pages/ProviderAnalyticsDashboard";
+import { ProviderDashboard } from "./pages/ProviderDashboard";
 import { ClinicalView } from "./pages/ClinicalView";
 import { DigitalITR } from "./pages/DigitalITR";
 import { MedicalRecords } from "./pages/MedicalRecords";
@@ -43,11 +43,11 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRole="provider" />,
     children: [
       { path: "/provider", Component: ProviderPortal },
-      { path: "/provider/analytics", Component: ProviderAnalyticsDashboard },
+      { path: "/provider/dashboard", Component: ProviderDashboard },
       { path: "/provider/encounter/:encounterId", Component: EncounterWorkspace },
       { path: "/provider/clinical/:patientId", Component: ClinicalView },
       { path: "/provider/itr", Component: DigitalITR },
-      { path: "/provider/upload", Component: MedicalRecordUpload },
+      { path: "/provider/upload/:patientId", Component: MedicalRecordUpload },
       { path: "/admin/audit-logs", Component: AdminAuditLogs },
     ]
   }

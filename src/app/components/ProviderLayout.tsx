@@ -22,9 +22,8 @@ export function ProviderLayout({ children }: ProviderLayoutProps) {
   };
 
   const navItems = [
-    { path: "/provider/analytics", icon: PieChart, label: "Dashboard" },
+    { path: "/provider/dashboard", icon: Activity, label: "Dashboard" },
     { path: "/provider", icon: Users, label: "Patient Directory" },
-    { path: "/provider/upload", icon: UploadCloud, label: "Upload Records" },
     { 
       path: "/admin/audit-logs", 
       icon: FileText, 

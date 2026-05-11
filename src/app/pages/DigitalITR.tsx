@@ -33,9 +33,8 @@ export function DigitalITR() {
   useEffect(() => {
     const fetchPatient = async () => {
       try {
-        const data = await api.get('/provider/directory');
-        const found = patientId ? data.find((p: any) => String(p.patient_id) === String(patientId)) : data[0];
-        setPatient(found || null);
+        const data = await api.get(`/provider/patient-lookup?query=${patientId}`);
+        setPatient(data || null);
       } catch (error) {
         console.error("Failed to fetch patient", error);
       } finally {
@@ -262,7 +261,7 @@ export function DigitalITR() {
 
         {/* Footer Actions */}
         <div className="flex gap-4 justify-end">
-          <Link to={patient ? `/provider/clinical/${patient.patient_id}` : '/provider/analytics'}
+          <Link to={patient ? `/provider/clinical/${patient.patient_id}` : '/provider/dashboard'}
             className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center gap-2">
             <X className="w-5 h-5" />
             Cancel

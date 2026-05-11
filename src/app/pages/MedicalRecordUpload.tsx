@@ -1,16 +1,15 @@
-import { Upload, FileText, Search, AlertCircle, Check, Shield, Loader2, X } from "lucide-react";
-import { Link, useNavigate } from "react-router";
-import { useState, useRef } from "react";
+import { Upload, FileText, AlertCircle, Shield, Loader2, X, CheckCircle2 } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router";
+import { useState, useRef, useEffect } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
 import { api, apiClient } from "../api/client";
-import { toast } from "sonner";
 
 export function MedicalRecordUpload() {
+  const { patientId } = useParams();
   const navigate = useNavigate();
 
-  // Patient lookup state
-  const [patientQuery, setPatientQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  // Patient state
+  const [isSearching, setIsSearching] = useState(true);
   const [foundPatient, setFoundPatient] = useState<any>(null);
   const [lookupError, setLookupError] = useState("");
 
@@ -25,28 +24,27 @@ export function MedicalRecordUpload() {
 
   // Upload state
   const [isUploading, setIsUploading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleLookup = async () => {
-    if (!patientQuery.trim()) {
-      setLookupError("Please enter a Patient ID or email");
-      return;
-    }
-    setLookupError("");
-    setFoundPatient(null);
-    setIsSearching(true);
-    try {
-      const res = await api.get(`/provider/patient-lookup?query=${encodeURIComponent(patientQuery.trim())}`);
-      setFoundPatient(res);
-    } catch (error: any) {
-      setLookupError(error.message || "No patient found with that ID or email");
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  useEffect(() => {
+    if (!patientId) return;
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleLookup();
-  };
+    const fetchPatient = async () => {
+      setIsSearching(true);
+      try {
+        const res = await api.get(`/provider/patient-lookup?query=${encodeURIComponent(patientId)}`);
+        setFoundPatient(res);
+      } catch (error: any) {
+        setLookupError(error.message || "Failed to load patient data");
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    fetchPatient();
+  }, [patientId]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -83,10 +81,10 @@ export function MedicalRecordUpload() {
         body: formData,
       });
 
-      toast.success("Medical record uploaded successfully!");
-      navigate(`/provider/clinical/${foundPatient.patient_id}`);
+      setShowSuccessModal(true);
     } catch (error: any) {
-      toast.error(error.message || "Failed to upload medical record");
+      setErrorMessage(error.message || "Failed to upload medical record");
+      setShowErrorModal(true);
     } finally {
       setIsUploading(false);
     }
@@ -98,77 +96,56 @@ export function MedicalRecordUpload() {
     <ProviderLayout>
       <div className="min-h-screen p-8">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Upload Medical Record</h1>
-          <p className="text-gray-600">
-            For official diagnostic files only. All uploads are encrypted and logged for Data Privacy Act compliance.
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Upload Medical Record</h1>
+            <p className="text-gray-600">
+              Official diagnostic files for <span className="font-bold text-blue-600">{foundPatient ? `${foundPatient.first_name} ${foundPatient.last_name}` : patientId}</span>
+            </p>
+          </div>
+          <Link 
+            to={`/provider/clinical/${patientId}`}
+            className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-800 transition"
+          >
+            <X className="w-4 h-4" /> Cancel & Return
+          </Link>
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-8">
-          {/* Patient Context */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Patient Context</h2>
-            <div className="relative">
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Patient ID or Email <span className="text-red-600">*</span>
-              </label>
-              <div className="flex gap-3">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={patientQuery}
-                    onChange={(e) => setPatientQuery(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Enter Patient ID (e.g., NCH-2026-001234) or email"
-                    className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
-                  />
-                  <Search className="absolute right-4 top-3.5 w-5 h-5 text-gray-400" />
-                </div>
-                <button
-                  onClick={handleLookup}
-                  disabled={isSearching}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-bold disabled:opacity-60"
-                >
-                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  Lookup
-                </button>
+          {/* Patient Context (Read Only) */}
+          <div className="mb-8 pb-6 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-teal-600" />
+              Patient Context
+            </h2>
+            
+            {isSearching ? (
+              <div className="flex items-center gap-3 text-gray-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <p className="text-sm">Fetching patient details...</p>
               </div>
-
-              {lookupError && (
-                <div className="mt-3 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg">
-                  <p className="text-sm font-bold text-red-800">{lookupError}</p>
+            ) : lookupError ? (
+              <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                <p className="text-sm font-bold text-red-800">{lookupError}</p>
+                <Link to="/provider" className="text-xs text-red-600 underline mt-1 block">Return to Directory</Link>
+              </div>
+            ) : foundPatient && (
+              <div className="p-4 bg-blue-50 border-l-4 border-blue-600 rounded-lg flex items-center justify-between">
+                <div>
+                  <p className="text-lg font-bold text-gray-900">
+                    {foundPatient.first_name} {foundPatient.last_name}
+                  </p>
+                  <p className="text-sm text-blue-700 font-mono">
+                    ID: {foundPatient.patient_id} • DOB: {foundPatient.date_of_birth ? new Date(foundPatient.date_of_birth).toLocaleDateString() : 'N/A'}
+                  </p>
                 </div>
-              )}
-
-              {foundPatient && (
-                <div className="mt-3 p-3 bg-green-50 border-l-4 border-green-600 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-600 shrink-0" />
-                      <div>
-                        <p className="text-sm font-bold text-green-900">
-                          Patient Found: {foundPatient.first_name} {foundPatient.last_name}
-                        </p>
-                        <p className="text-xs text-green-700">
-                          ID: {foundPatient.patient_id}
-                          {foundPatient.blood_type ? ` • Blood Type: ${foundPatient.blood_type}` : ""}
-                          {foundPatient.date_of_birth
-                            ? ` • DOB: ${new Date(foundPatient.date_of_birth).toLocaleDateString()}`
-                            : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => { setFoundPatient(null); setPatientQuery(""); }}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+                <div className="text-right">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-widest">
+                    Target Patient
+                  </span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Record Details */}
@@ -271,7 +248,7 @@ export function MedicalRecordUpload() {
           {/* Action Buttons */}
           <div className="flex gap-4 justify-end border-t pt-6">
             <Link
-              to="/provider/analytics"
+              to={`/provider/clinical/${patientId}`}
               className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
             >
               Cancel
@@ -320,6 +297,45 @@ export function MedicalRecordUpload() {
             </div>
           </div>
         </div>
+
+        {/* ── SUCCESS MODAL ─────────────────────────────────── */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mx-auto mb-5">
+                <CheckCircle2 className="w-10 h-10 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Successful!</h2>
+              <p className="text-sm text-gray-500 mb-2">The medical record has been securely stored and linked to a new encounter.</p>
+              <p className="text-xs text-gray-400 mb-8">This action has been logged in compliance with the Data Privacy Act.</p>
+              <button
+                onClick={() => navigate(`/provider/clinical/${patientId}`)}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-xl font-bold hover:opacity-90 transition"
+              >
+                Return to Patient Record
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── ERROR MODAL ───────────────────────────────────── */}
+        {showErrorModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowErrorModal(false)} />
+            <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-5">
+                <X className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Upload Failed</h2>
+              <p className="text-sm text-gray-500 mb-6">{errorMessage}</p>
+              <button onClick={() => setShowErrorModal(false)} className="w-full px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition">
+                OK, Got It
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </ProviderLayout>
   );

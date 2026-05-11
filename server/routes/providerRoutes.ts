@@ -49,7 +49,7 @@ router.get('/audit-logs', getAdminAuditLogs);
 router.post('/scan-qr', scanQr);
 
 // GET patient lookup
-router.get('/patient-lookup', patientLookup);
+router.get('/patient-lookup', auditLogger('Accessed Patient Record via Lookup/Quick Access'), patientLookup);
 
 // POST verify patient
 router.post('/verify-patient', verifyPatient);

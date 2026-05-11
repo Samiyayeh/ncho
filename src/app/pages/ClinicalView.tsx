@@ -1,4 +1,4 @@
-import { Phone, MapPin, Calendar, Activity, FileText, Clock, Shield, Pill, ArrowLeft } from "lucide-react";
+import { Phone, MapPin, Calendar, Activity, FileText, Clock, Shield, Pill, ArrowLeft, UploadCloud } from "lucide-react";
 import { Link, useParams, useSearchParams, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
@@ -37,14 +37,13 @@ export function ClinicalView() {
 
     const fetchAll = async () => {
       try {
-        const [directory, encounterData, recordData] = await Promise.all([
-          api.get('/provider/directory'),
+        const [patientData, encounterData, recordData] = await Promise.all([
+          api.get(`/provider/patient-lookup?query=${patientId}`),
           api.get(`/provider/encounters/${patientId}`),
           api.get(`/provider/medical-records/${patientId}`),
         ]);
 
-        const found = directory.find((p: any) => String(p.patient_id) === String(patientId));
-        setPatient(found || null);
+        setPatient(patientData || null);
         setEncounters(encounterData);
         setRecords(recordData);
       } catch (error) {
@@ -79,6 +78,13 @@ export function ClinicalView() {
                 Return to Active Consultation
               </Link>
             )}
+            <Link
+              to={`/provider/upload/${patientId}`}
+              className="px-6 py-2 bg-white border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition flex items-center gap-2 font-bold shadow-sm"
+            >
+              <UploadCloud className="w-5 h-5" />
+              Upload Record
+            </Link>
             <button
               onClick={handleStartEncounter}
               disabled={startingEncounter}
@@ -105,7 +111,6 @@ export function ClinicalView() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <h2 className="text-2xl font-bold text-gray-900">{patient.first_name} {patient.last_name}</h2>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold">Verified Patient</span>
                 </div>
                 <p className="text-gray-600">Patient ID: {patient.patient_id}</p>
               </div>

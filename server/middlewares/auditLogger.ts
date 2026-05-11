@@ -25,11 +25,10 @@ export const auditLogger = (actionDescription?: string) => {
         if (req.user && req.user.role === 'patient') {
           patientId = req.user.id;
         } else {
-          if (req.body && typeof req.body === 'object' && 'patient_id' in req.body) {
-            patientId = req.body.patient_id;
-          } else if (req.params && typeof req.params === 'object' && 'patientId' in req.params) {
-            patientId = req.params.patientId;
-          }
+          // Check various sources for patient_id
+          patientId = (req as any).patient_id || (req as any).patientId || 
+                      req.body?.patient_id || req.body?.patientId ||
+                      req.params?.patient_id || req.params?.patientId;
         }
       } catch (e) {
         console.error('[Audit Logger Error] Failed to safely extract IDs:', e);

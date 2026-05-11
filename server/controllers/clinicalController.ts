@@ -52,6 +52,9 @@ export const getEncounter = async (req: AuthRequest, res: Response) => {
     
     if (!encounter) return res.status(404).json({ error: 'Encounter not found.' });
 
+    // Set patient_id for the audit logger
+    (req as any).patient_id = encounter.patient_id;
+
     res.status(200).json(encounter);
   } catch (error: any) {
     console.error('Get Encounter Error:', error);
@@ -67,6 +70,10 @@ export const cancelEncounter = async (req: AuthRequest, res: Response) => {
     if (encounter.status !== 'IN_PROGRESS') {
       return res.status(400).json({ error: 'Only IN_PROGRESS encounters can be cancelled.' });
     }
+    
+    // Set patient_id for the audit logger
+    (req as any).patient_id = encounter.patient_id;
+
     await encounter.destroy();
     res.status(200).json({ message: 'Encounter cancelled and removed.' });
   } catch (error: any) {
@@ -115,6 +122,9 @@ export const saveClinical = async (req: AuthRequest, res: Response) => {
 
     const encounter = await Encounter.findByPk(encounter_id, { transaction });
     if (!encounter) return res.status(404).json({ error: 'Encounter not found.' });
+
+    // Set patient_id for audit logger
+    (req as any).patient_id = encounter.patient_id;
 
     const prescriber = await Provider.findByPk(provider_id as string, { transaction });
     const prcNumber = prescriber?.prc_license_number;
@@ -179,12 +189,21 @@ export const saveClinical = async (req: AuthRequest, res: Response) => {
  */
 export const getDashboardStats = async (req: AuthRequest, res: Response) => {
   try {
+    const provider_id = req.user?.id;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [activeSessions, completedToday, allTimeCompleted, diagnosisRows] = await Promise.all([
+    const [
+      activeSessions, 
+      completedToday, 
+      allTimeCompleted, 
+      diagnosisRows,
+      myCompletedToday,
+      recentEncounters
+    ] = await Promise.all([
       Encounter.count({ where: { status: 'IN_PROGRESS' } }),
       Encounter.count({ where: { encounter_date: { [Op.gte]: today, [Op.lt]: tomorrow }, status: 'COMPLETED' } }),
       Encounter.count({ where: { status: 'COMPLETED' } }),
@@ -198,7 +217,24 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
         order: [[literal('count'), 'DESC']],
         limit: 5,
         raw: true
-      })
+      }),
+      provider_id ? Encounter.count({ 
+        where: { 
+          provider_id, 
+          status: 'COMPLETED', 
+          encounter_date: { [Op.gte]: today, [Op.lt]: tomorrow } 
+        } 
+      }) : 0,
+      provider_id ? Encounter.findAll({
+        where: { provider_id, status: 'COMPLETED' },
+        include: [{ 
+          model: Patient, 
+          as: 'Patient', 
+          attributes: ['first_name', 'last_name', 'patient_id']
+        }],
+        order: [['encounter_date', 'DESC']],
+        limit: 5
+      }) : []
     ]);
 
     res.status(200).json({
@@ -208,7 +244,9 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       topDiagnoses: (diagnosisRows as any[]).map((r: any) => ({
         name: r.diagnosis,
         count: parseInt(r.count)
-      }))
+      })),
+      myCompletedToday,
+      recentEncounters
     });
   } catch (error: any) {
     console.error('Dashboard Stats Error:', error);

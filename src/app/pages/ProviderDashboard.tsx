@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
 import { api } from "../api/client";
+import { Link } from "react-router";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell
 } from 'recharts';
 import {
-  Activity, CheckCircle2, Trash2, RefreshCw, Shield, AlertCircle, Clock, Users
+  Activity, CheckCircle2, RefreshCw, Shield, AlertCircle, Clock, Users, History, UserCheck, ArrowRight
 } from "lucide-react";
 
 // ─── Color palette for bar chart ─────────────────────────────────────────────
@@ -20,12 +21,21 @@ const formatTimestamp = (ts: string) =>
       })
     : '—';
 
+const getTimeOnly = (ts: string) =>
+  ts
+    ? new Date(ts).toLocaleTimeString('en-PH', {
+        hour: '2-digit', minute: '2-digit'
+      })
+    : '—';
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface DashboardStats {
   activeSessions: number;
   completedToday: number;
   allTimeCompleted: number;
   topDiagnoses: { name: string; count: number }[];
+  myCompletedToday: number;
+  recentEncounters: any[];
 }
 
 interface DpaLog {
@@ -39,7 +49,7 @@ interface DpaLog {
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export function ProviderAnalyticsDashboard() {
+export function ProviderDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [dpaLogs, setDpaLogs] = useState<DpaLog[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -115,9 +125,9 @@ export function ProviderAnalyticsDashboard() {
         {/* ── Page Header ─────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Administrative Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Provider Dashboard</h1>
             <p className="text-gray-500 text-sm mt-1">
-              Operational overview · Public health trends · DPA security audit
+              Welcome back, {providerName}. Here is your clinical overview for today.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -135,128 +145,198 @@ export function ProviderAnalyticsDashboard() {
           </div>
         </div>
 
-        {/* ── Section 1: Operational Overview KPIs ────────────────────── */}
-        <section className="mb-10">
-          <div className="flex items-center gap-2 mb-5">
-            <Activity className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-gray-800">Operational Overview</h2>
-            <span className="ml-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-full">Live</span>
+        {/* ── Section 1: Personal & Operational Overview ──────────────── */}
+        <div className="grid lg:grid-cols-3 gap-8 mb-10">
+          
+          {/* Daily Progress Summary */}
+          <div className="lg:col-span-1 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden flex flex-col justify-center">
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <UserCheck className="w-5 h-5 text-blue-200" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-blue-100">Patients Seen Today</h2>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-7xl font-black leading-none">
+                  {loadingStats ? '...' : stats?.myCompletedToday ?? 0}
+                </span>
+                <span className="text-xl font-medium text-blue-100 opacity-80">
+                  Total Consultations
+                </span>
+              </div>
+              <p className="text-xs text-blue-200 mt-4 font-medium uppercase tracking-widest">
+                Personal daily performance
+              </p>
+            </div>
+            {/* Decorative background element */}
+            <Activity className="absolute -right-8 -bottom-8 w-48 h-48 text-white/5 rotate-12" />
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          {/* System Overview KPIs */}
+          <div className="lg:col-span-2 grid md:grid-cols-2 gap-6">
             <KpiCard
               label="Active Sessions"
               value={stats?.activeSessions ?? 0}
               icon={Activity}
               colorClass="text-orange-600"
               bgClass="bg-orange-50"
-              description="Encounters currently IN_PROGRESS"
+              description="Encounters currently in progress across the system"
             />
             <KpiCard
-              label="Completed Today"
+              label="Total System Completions"
               value={stats?.completedToday ?? 0}
               icon={CheckCircle2}
               colorClass="text-green-600"
               bgClass="bg-green-50"
-              description="Consultations finalized today"
-            />
-            <KpiCard
-              label="All-Time Completed"
-              value={stats?.allTimeCompleted ?? 0}
-              icon={Users}
-              colorClass="text-blue-600"
-              bgClass="bg-blue-50"
-              description="Total successful encounters on record"
+              description="All consultations finalized today in NCHO"
             />
           </div>
+        </div>
 
-          {/* Active sessions badge */}
-          {!loadingStats && (stats?.activeSessions ?? 0) > 0 && (
-            <div className="mt-4 flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-5 py-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse flex-shrink-0" />
-              <p className="text-sm font-bold text-orange-800">
-                {stats!.activeSessions} consultation{stats!.activeSessions > 1 ? 's are' : ' is'} currently in progress
-              </p>
+        <div className="grid lg:grid-cols-3 gap-8 mb-10">
+          {/* ── Recent Patient Activity (New) ─────────────────────────── */}
+          <section className="lg:col-span-1">
+            <div className="flex items-center gap-2 mb-5">
+              <History className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-lg font-bold text-gray-800">Recent Patients</h2>
             </div>
-          )}
-        </section>
-
-        {/* ── Section 2: Public Health Trends ─────────────────────────── */}
-        <section className="mb-10">
-          <div className="flex items-center gap-2 mb-5">
-            <AlertCircle className="w-5 h-5 text-purple-600" />
-            <h2 className="text-lg font-bold text-gray-800">Public Health Trends</h2>
-            <span className="ml-1 px-2 py-0.5 bg-purple-50 text-purple-600 text-xs font-bold rounded-full">Top Diagnoses</span>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="font-bold text-gray-900">Top 5 Most Frequent Diagnoses</h3>
-                <p className="text-xs text-gray-400 mt-1">Aggregated from all completed encounters</p>
+            
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[400px]">
+              <div className="p-4 border-b border-gray-50 bg-gray-50/50">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last 5 Consultations</p>
               </div>
-            </div>
-
-            <div className="h-72">
-              {loadingStats ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-400">
-                  <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                  <p className="text-sm font-medium">Loading data...</p>
-                </div>
-              ) : !stats?.topDiagnoses?.length ? (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-                  <AlertCircle className="w-10 h-10 mb-2 opacity-40" />
-                  <p className="text-sm font-medium">No diagnosis data available yet.</p>
-                  <p className="text-xs mt-1">Complete some encounters to see trends.</p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={stats.topDiagnoses}
-                    layout="vertical"
-                    margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
-                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} allowDecimals={false} />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      axisLine={false}
-                      tickLine={false}
-                      width={200}
-                      tick={{ fontSize: 12, fill: '#374151', fontWeight: 600 }}
-                    />
-                    <Tooltip
-                      cursor={{ fill: '#F9FAFB' }}
-                      contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      formatter={(value: number) => [`${value} cases`, 'Count']}
-                    />
-                    <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={36}>
-                      {stats.topDiagnoses.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            {/* Legend */}
-            {stats?.topDiagnoses?.length ? (
-              <div className="mt-4 flex flex-wrap gap-3">
-                {stats.topDiagnoses.map((d, i) => (
-                  <div key={d.name} className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }} />
-                    <span className="text-xs font-medium text-gray-600">{d.name}</span>
-                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] + '20', color: BAR_COLORS[i % BAR_COLORS.length] }}>{d.count}</span>
+              
+              <div className="flex-1 overflow-y-auto">
+                {loadingStats ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="p-4 border-b border-gray-50 animate-pulse">
+                      <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-gray-50 rounded w-1/2" />
+                    </div>
+                  ))
+                ) : !stats?.recentEncounters?.length ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400">
+                    <Users className="w-10 h-10 mb-2 opacity-20" />
+                    <p className="text-sm font-medium">No recent consultations</p>
+                    <p className="text-xs">Your completed encounters will appear here.</p>
                   </div>
-                ))}
+                ) : (
+                  stats.recentEncounters.map((enc) => (
+                    <Link 
+                      key={enc.encounter_id}
+                      to={`/provider/clinical/${enc.Patient?.patient_id}`}
+                      className="flex items-center justify-between p-4 border-b border-gray-50 hover:bg-blue-50/50 transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                          {enc.Patient?.first_name[0]}{enc.Patient?.last_name[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition">
+                            {enc.Patient?.first_name} {enc.Patient?.last_name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${
+                              enc.encounter_type === 'FILE_UPLOAD' ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-600'
+                            }`}>
+                              {enc.encounter_type === 'FILE_UPLOAD' ? 'File Upload' : 'Consultation'}
+                            </span>
+                            <p className="text-xs text-gray-400 font-medium truncate max-w-[120px]">
+                              {getTimeOnly(enc.encounter_date)} · {enc.encounter_type === 'FILE_UPLOAD' ? enc.diagnosis : (enc.diagnosis || 'No Diagnosis')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-400 transform group-hover:translate-x-1 transition" />
+                    </Link>
+                  ))
+                )}
               </div>
-            ) : null}
-          </div>
-        </section>
+              
+              <Link 
+                to="/provider"
+                className="p-4 text-center text-sm font-bold text-blue-600 hover:bg-blue-50 transition border-t border-gray-50"
+              >
+                View Patient Directory
+              </Link>
+            </div>
+          </section>
 
-        {/* ── Section 3: DPA Security Audit Feed ──────────────────────── */}
+          {/* ── Section 2: Public Health Trends (Kept) ────────────────── */}
+          <section className="lg:col-span-2">
+            <div className="flex items-center gap-2 mb-5">
+              <AlertCircle className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-bold text-gray-800">Public Health Trends</h2>
+              <span className="ml-1 px-2 py-0.5 bg-purple-50 text-purple-600 text-xs font-bold rounded-full">Top Diagnoses</span>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-[400px] flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-gray-900">Top 5 Most Frequent Diagnoses</h3>
+                  <p className="text-xs text-gray-400 mt-1">Aggregated from all completed encounters</p>
+                </div>
+              </div>
+
+              <div className="flex-1">
+                {loadingStats ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-400">
+                    <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                    <p className="text-sm font-medium">Loading data...</p>
+                  </div>
+                ) : !stats?.topDiagnoses?.length ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                    <AlertCircle className="w-10 h-10 mb-2 opacity-40" />
+                    <p className="text-sm font-medium">No diagnosis data available yet.</p>
+                    <p className="text-xs mt-1">Complete some encounters to see trends.</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={stats.topDiagnoses}
+                      layout="vertical"
+                      margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F3F4F6" />
+                      <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} allowDecimals={false} />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        axisLine={false}
+                        tickLine={false}
+                        width={150}
+                        tick={{ fontSize: 11, fill: '#374151', fontWeight: 600 }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: '#F9FAFB' }}
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        formatter={(value: number) => [`${value} cases`, 'Count']}
+                      />
+                      <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={30}>
+                        {stats.topDiagnoses.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Legend */}
+              {!loadingStats && stats?.topDiagnoses?.length ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {stats.topDiagnoses.map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }} />
+                      <span className="text-[10px] font-bold text-gray-500">{d.name} ({d.count})</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </div>
+
+        {/* ── Section 3: DPA Security Audit Feed (Kept) ────────────────── */}
         <section>
           <div className="flex items-center gap-2 mb-5">
             <Shield className="w-5 h-5 text-teal-600" />
@@ -267,7 +347,7 @@ export function ProviderAnalyticsDashboard() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
-                <h3 className="font-bold text-gray-900">20 Most Recent Access Events</h3>
+                <h3 className="font-bold text-gray-900">Most Recent Access Events</h3>
                 <p className="text-xs text-gray-400 mt-0.5">Data Privacy Act compliance monitoring — all events are permanent and immutable</p>
               </div>
               <Shield className="w-6 h-6 text-teal-300" />
@@ -345,7 +425,7 @@ export function ProviderAnalyticsDashboard() {
               <Shield className="w-4 h-4 text-teal-600 flex-shrink-0" />
               <p className="text-xs text-teal-800">
                 <span className="font-bold">Data Privacy Act Compliance:</span>{' '}
-                All access events are permanently logged and cannot be modified or deleted. Available for NPC audit upon request.
+                All access events are permanently logged. Available for NPC audit.
               </p>
             </div>
           </div>

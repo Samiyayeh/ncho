@@ -92,4 +92,11 @@ export class Encounter extends Model {
     defaultValue: {}
   })
   declare specialized_data: any;
+
+  @Column({
+    type: DataType.ENUM('CONSULTATION', 'FILE_UPLOAD'),
+    defaultValue: 'CONSULTATION',
+    allowNull: false
+  })
+  declare encounter_type: string;
 }

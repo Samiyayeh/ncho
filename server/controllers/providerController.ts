@@ -58,12 +58,15 @@ export const patientLookup = async (req: AuthRequest, res: Response) => {
           { patient_id: query }
         ]
       },
-      attributes: ['patient_id', 'email', 'first_name', 'last_name', 'verification_status', 'created_at', 'date_of_birth', 'address']
+      attributes: ['patient_id', 'email', 'first_name', 'last_name', 'verification_status', 'blood_type', 'allergies', 'created_at', 'date_of_birth', 'address']
     });
 
     if (!patient) {
       return res.status(404).json({ error: 'No matching patient found' });
     }
+
+    // Set patient_id for audit logger
+    (req as any).patient_id = patient.patient_id;
 
     res.status(200).json(patient);
   } catch (error) {
@@ -179,29 +182,52 @@ export const createEncounter = async (req: AuthRequest, res: Response) => {
 };
 
 export const uploadMedicalRecord = async (req: AuthRequest, res: Response) => {
+  const transaction = await sequelize.transaction();
   try {
     const providerId = req.user?.id;
-    if (!providerId) return res.status(403).json({ error: 'Unauthorized' });
+    if (!providerId) {
+      await transaction.rollback();
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
 
-    const { patient_id, document_type, description, encounter_id } = req.body;
+    const { patient_id, document_type, description } = req.body;
     
     if (!req.file) {
+      await transaction.rollback();
       return res.status(400).json({ error: 'No file uploaded.' });
     }
 
     const file_url = `/uploads/${req.file.filename}`;
 
+    // 1. Create a shadow encounter for this upload so it shows in the dashboard
+    const encounter = await Encounter.create({
+      patient_id,
+      provider_id: providerId,
+      encounter_date: new Date(),
+      status: 'COMPLETED',
+      encounter_type: 'FILE_UPLOAD',
+      diagnosis: `Uploaded: ${document_type}`,
+      chief_complaint: 'Document Filing'
+    } as any, { transaction });
+
+    // 2. Create the record linked to this encounter
     const record = await MedicalRecord.create({
       patient_id,
       provider_id: providerId,
-      encounter_id: encounter_id || null,
+      encounter_id: encounter.encounter_id,
       document_type,
       file_url,
       description
-    });
+    }, { transaction });
 
-    res.status(201).json({ message: 'Medical record uploaded successfully', record_id: record.record_id });
+    await transaction.commit();
+    res.status(201).json({ 
+      message: 'Medical record uploaded and encounter recorded successfully', 
+      record_id: record.record_id,
+      encounter_id: encounter.encounter_id
+    });
   } catch (error) {
+    await transaction.rollback();
     console.error('Error uploading medical record:', error);
     res.status(500).json({ error: 'Internal server error.' });
   }
@@ -239,6 +265,9 @@ export const deleteMedicalRecord = async (req: AuthRequest, res: Response) => {
     if (!record) {
       return res.status(404).json({ error: 'Record not found or you do not have permission to delete it.' });
     }
+
+    // Set patient_id for audit logger
+    (req as any).patient_id = record.patient_id;
 
     await record.destroy(); // Soft deletes natively via paranoid: true
 
