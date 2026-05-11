@@ -118,3 +118,121 @@ Follow these steps to test the streamlined clinical journey:
 *   `npm run seed:dashboard`: Generates 100+ realistic encounters for visualization.
 *   `npm run seed:dashboard:test`: Targets the test database with realistic visualization data.
 *   `npm run seed:analytics`: Legacy: Generates 150+ patients/encounters.
+
+---
+
+## 🗄️ Entity Relationship Diagram
+
+> The system uses **7 active database entities**. The `ENCOUNTERS` table is the core hub — both consultations and file uploads are recorded as encounters, ensuring all provider activity is uniformly tracked.
+
+```mermaid
+erDiagram
+    PATIENTS {
+        string patient_id PK
+        string first_name
+        string last_name
+        string email UK
+        string password_hash
+        date date_of_birth
+        enum gender
+        string blood_type
+        text allergies
+        string contact_number
+        text address
+        boolean voter_registered
+        boolean household_head
+        text chronic_conditions
+        enum verification_status
+        datetime created_at
+        datetime updated_at
+    }
+
+    PROVIDERS {
+        string provider_id PK
+        string first_name
+        string last_name
+        string specialty
+        string email UK
+        string password_hash
+        string contact_number
+        string prc_license_number
+        enum role_type
+        datetime created_at
+        datetime updated_at
+    }
+
+    ENCOUNTERS {
+        int encounter_id PK
+        string patient_id FK
+        string provider_id FK
+        enum status
+        enum encounter_type
+        datetime encounter_date
+        int bp_systolic
+        int bp_diastolic
+        int heart_rate
+        decimal temperature
+        decimal weight
+        text chief_complaint
+        text diagnosis
+        text treatment_notes
+        text treatment_plan
+        json specialized_data
+        datetime created_at
+        datetime updated_at
+    }
+
+    PRESCRIPTIONS {
+        int prescription_id PK
+        int encounter_id FK
+        string medication_name
+        string dosage
+        enum frequency
+        int duration_days
+        string prescriber_prc_number
+        datetime created_at
+    }
+
+    MEDICAL_RECORDS {
+        int record_id PK
+        string patient_id FK
+        string provider_id FK
+        int encounter_id FK
+        string document_type
+        string file_url
+        text description
+        boolean soft_delete
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
+    QR_ACCESS_TOKENS {
+        int token_id PK
+        string patient_id FK
+        string token_string UK
+        datetime expires_at
+        boolean is_active
+        datetime created_at
+    }
+
+    AUDIT_LOGS {
+        int log_id PK
+        string provider_id FK
+        string patient_id FK
+        string action_taken
+        string endpoint_accessed
+        string ip_address
+        datetime timestamp
+    }
+
+    PATIENTS ||--o{ ENCOUNTERS : "has"
+    PROVIDERS ||--o{ ENCOUNTERS : "conducts"
+    ENCOUNTERS ||--o{ PRESCRIPTIONS : "generates"
+    ENCOUNTERS ||--o{ MEDICAL_RECORDS : "contains"
+    PATIENTS ||--o{ MEDICAL_RECORDS : "owns"
+    PROVIDERS ||--o{ MEDICAL_RECORDS : "uploads"
+    PATIENTS ||--o{ QR_ACCESS_TOKENS : "holds"
+    PATIENTS ||--o{ AUDIT_LOGS : "subject of"
+    PROVIDERS ||--o{ AUDIT_LOGS : "actor in"
+```
