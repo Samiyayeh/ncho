@@ -3,7 +3,7 @@ import { Patient } from './Patient';
 import { Provider } from './Provider';
 import { Prescription } from './Prescription';
 import { MedicalRecord } from './MedicalRecord';
-import { Referral } from './Referral';
+
 
 @Table({
   tableName: 'ENCOUNTERS',
@@ -83,8 +83,7 @@ export class Encounter extends Model {
   @HasMany(() => MedicalRecord)
   declare medical_records: MedicalRecord[];
 
-  @HasMany(() => Referral)
-  declare referrals: Referral[];
+
 
   @Column({
     type: DataType.JSON,
