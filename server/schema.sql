@@ -24,6 +24,21 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `accounts`
+--
+
+CREATE TABLE `accounts` (
+  `account_id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `role` enum('patient','provider') NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `audit_logs`
 --
 
@@ -90,10 +105,9 @@ CREATE TABLE `medical_records` (
 
 CREATE TABLE `patients` (
   `patient_id` varchar(50) NOT NULL,
+  `account_id` int(11) NOT NULL,
   `first_name` varchar(100) NOT NULL,
   `last_name` varchar(100) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
   `date_of_birth` date DEFAULT NULL,
   `gender` enum('Male','Female','Other') DEFAULT NULL,
   `blood_type` varchar(5) DEFAULT NULL,
@@ -131,14 +145,13 @@ CREATE TABLE `prescriptions` (
 
 CREATE TABLE `providers` (
   `provider_id` varchar(50) NOT NULL,
+  `account_id` int(11) NOT NULL,
   `first_name` varchar(100) NOT NULL,
   `last_name` varchar(100) NOT NULL,
   `specialty` varchar(100) DEFAULT NULL,
-  `email` varchar(255) NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
   `contact_number` varchar(20) DEFAULT NULL,
   `prc_license_number` varchar(50) DEFAULT NULL,
-  `role_type` enum('TRIAGE_NURSE','PHYSICIAN','PHARMACIST','DENTIST','SOCIAL_WORKER') NOT NULL DEFAULT 'PHYSICIAN',
+  `role_type` enum('TRIAGE_NURSE','PHYSICIAN','PHARMACIST','DENTIST','SOCIAL_WORKER','SPECIALIST') NOT NULL DEFAULT 'PHYSICIAN',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -170,6 +183,13 @@ CREATE TABLE `qr_access_tokens` (
 --
 
 --
+-- Indexes for table `accounts`
+--
+ALTER TABLE `accounts`
+  ADD PRIMARY KEY (`account_id`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
 -- Indexes for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
@@ -199,7 +219,7 @@ ALTER TABLE `medical_records`
 --
 ALTER TABLE `patients`
   ADD PRIMARY KEY (`patient_id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD KEY `account_id` (`account_id`);
 
 --
 -- Indexes for table `prescriptions`
@@ -213,7 +233,7 @@ ALTER TABLE `prescriptions`
 --
 ALTER TABLE `providers`
   ADD PRIMARY KEY (`provider_id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD KEY `account_id` (`account_id`);
 
 --
 -- Indexes for table `qr_access_tokens`
@@ -228,6 +248,12 @@ ALTER TABLE `qr_access_tokens`
 
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `accounts`
+--
+ALTER TABLE `accounts`
+  MODIFY `account_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
@@ -269,6 +295,18 @@ ALTER TABLE `qr_access_tokens`
 ALTER TABLE `audit_logs`
   ADD CONSTRAINT `audit_logs_ibfk_1` FOREIGN KEY (`provider_id`) REFERENCES `providers` (`provider_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `audit_logs_ibfk_2` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`patient_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `patients`
+--
+ALTER TABLE `patients`
+  ADD CONSTRAINT `patients_ibfk_account` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`account_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `providers`
+--
+ALTER TABLE `providers`
+  ADD CONSTRAINT `providers_ibfk_account` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`account_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `encounters`

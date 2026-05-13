@@ -1,4 +1,5 @@
-import { Table, Column, Model, DataType, HasMany, PrimaryKey, IsEmail, Unique } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, HasMany, PrimaryKey, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Account } from './Account';
 import { Encounter } from './Encounter';
 import { MedicalRecord } from './MedicalRecord';
 import { AuditLog } from './AuditLog';
@@ -16,6 +17,16 @@ export class Provider extends Model {
   })
   declare provider_id: string;
 
+  @ForeignKey(() => Account)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false
+  })
+  declare account_id: number;
+
+  @BelongsTo(() => Account, { as: 'Account', onDelete: 'CASCADE' })
+  declare Account: Account;
+
   @Column({
     type: DataType.STRING(100),
     allowNull: false
@@ -30,20 +41,6 @@ export class Provider extends Model {
 
   @Column(DataType.STRING(100))
   declare specialty: string;
-
-  @IsEmail
-  @Unique
-  @Column({
-    type: DataType.STRING(255),
-    allowNull: false
-  })
-  declare email: string;
-
-  @Column({
-    type: DataType.STRING(255),
-    allowNull: false
-  })
-  declare password_hash: string;
 
   @Column(DataType.STRING(20))
   declare contact_number: string;
@@ -70,3 +67,4 @@ export class Provider extends Model {
   @HasMany(() => AuditLog)
   declare audit_logs: AuditLog[];
 }
+

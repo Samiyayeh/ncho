@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
+import { Account } from '../models/Account';
 import { Patient } from '../models/Patient';
 import { MedicalRecord } from '../models/MedicalRecord';
 import { Encounter } from '../models/Encounter';
@@ -51,14 +52,19 @@ export const getPatientProfile = async (req: AuthRequest, res: Response) => {
     }
 
     const patient = await Patient.findByPk(patientId, {
-      attributes: { exclude: ['password_hash'] }
+      include: [{ model: Account, as: 'Account', attributes: ['email'] }]
     });
     
     if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
-    res.status(200).json(patient);
+    // Flatten the email into the response so frontend sees it at top level
+    const patientData = patient.toJSON();
+    patientData.email = patientData.Account?.email || null;
+    delete patientData.Account;
+
+    res.status(200).json(patientData);
   } catch (error) {
     console.error('Error fetching patient profile:', error);
     res.status(500).json({ error: 'Internal server error.' });
@@ -143,17 +149,19 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
     }
 
-    const patient = await Patient.findByPk(patientId);
-    if (!patient) return res.status(404).json({ error: 'Patient not found.' });
+    const patient = await Patient.findByPk(patientId, {
+      include: [{ model: Account, as: 'Account' }]
+    });
+    if (!patient || !patient.Account) return res.status(404).json({ error: 'Patient not found.' });
 
-    const isMatch = await bcrypt.compare(currentPassword, patient.password_hash);
+    const isMatch = await bcrypt.compare(currentPassword, patient.Account.password_hash);
     if (!isMatch) {
       return res.status(401).json({ error: 'Incorrect current password.' });
     }
 
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
     
-    await patient.update({ password_hash: newPasswordHash });
+    await patient.Account.update({ password_hash: newPasswordHash });
 
     // Note: We don't need to manually create an AuditLog here if we use the auditLogger middleware in the routes
     res.status(200).json({ message: 'Password updated successfully.' });

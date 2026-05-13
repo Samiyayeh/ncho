@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
+import { Account } from '../models/Account';
 import { Patient } from '../models/Patient';
 import { Provider } from '../models/Provider';
 import { Encounter } from '../models/Encounter';
@@ -51,24 +52,36 @@ export const patientLookup = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Query parameter required' });
     }
 
-    const patient = await Patient.findOne({
-      where: {
-        [Op.or]: [
-          { email: query },
-          { patient_id: query }
-        ]
-      },
-      attributes: ['patient_id', 'email', 'first_name', 'last_name', 'blood_type', 'allergies', 'created_at', 'date_of_birth', 'address']
+    // Search by patient_id directly, or by email through the Account association
+    let patient = await Patient.findOne({
+      where: { patient_id: query },
+      include: [{ model: Account, as: 'Account', attributes: ['email'] }]
     });
+
+    if (!patient) {
+      // Try finding by email through Account
+      const account = await Account.findOne({ where: { email: query, role: 'patient' } });
+      if (account) {
+        patient = await Patient.findOne({
+          where: { account_id: account.account_id },
+          include: [{ model: Account, as: 'Account', attributes: ['email'] }]
+        });
+      }
+    }
 
     if (!patient) {
       return res.status(404).json({ error: 'No matching patient found' });
     }
 
-    // Set patient_id for audit logger
-    (req as any).patient_id = patient.patient_id;
+    // Flatten email and pick specific fields for the response
+    const data = patient.toJSON();
+    data.email = data.Account?.email || null;
+    delete data.Account;
 
-    res.status(200).json(patient);
+    // Set patient_id for audit logger
+    (req as any).patient_id = data.patient_id;
+
+    res.status(200).json(data);
   } catch (error) {
     console.error('Error looking up patient:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -79,9 +92,16 @@ export const patientLookup = async (req: AuthRequest, res: Response) => {
 export const getPatientDirectory = async (req: AuthRequest, res: Response) => {
   try {
     const patients = await Patient.findAll({
-      attributes: { exclude: ['password_hash'] }
+      include: [{ model: Account, as: 'Account', attributes: ['email'] }]
     });
-    res.status(200).json(patients);
+    // Flatten email into each patient object for frontend compatibility
+    const result = patients.map(p => {
+      const data = p.toJSON();
+      data.email = data.Account?.email || null;
+      delete data.Account;
+      return data;
+    });
+    res.status(200).json(result);
   } catch (error) {
     console.error('Error fetching directory:', error);
     res.status(500).json({ error: 'Internal server error.' });

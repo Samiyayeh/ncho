@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { Account } from '../models/Account';
 import { Patient } from '../models/Patient';
 import { Provider } from '../models/Provider';
 import { AuditLog } from '../models/AuditLog';
@@ -13,16 +14,27 @@ export const registerPatient = async (req: Request, res: Response) => {
       voter_registered, household_head, blood_type, allergies, chronic_conditions
     } = req.body;
 
-    const existingPatient = await Patient.findOne({ where: { email } });
-    if (existingPatient) {
+    // Check for duplicate email in the unified accounts table
+    const existingAccount = await Account.findOne({ where: { email } });
+    if (existingAccount) {
       return res.status(400).json({ error: 'Email already registered.' });
     }
 
     const password_hash = await bcrypt.hash(password, 10);
+
+    // 1. Create the Account row first
+    const account = await Account.create({
+      email,
+      password_hash,
+      role: 'patient'
+    });
+
+    // 2. Create the Patient row linked to the account
     const patient_id = `NCH-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const patient = await Patient.create({
-      patient_id, first_name, last_name, email, password_hash, date_of_birth, gender, contact_number, address,
+      patient_id, account_id: account.account_id,
+      first_name, last_name, date_of_birth, gender, contact_number, address,
       voter_registered: voter_registered === 'yes' || voter_registered === true,
       household_head: household_head === 'yes' || household_head === true,
       blood_type,
@@ -30,7 +42,7 @@ export const registerPatient = async (req: Request, res: Response) => {
       chronic_conditions
     });
 
-    // Generate token for auto-login
+    // Generate token for auto-login (payload shape unchanged)
     const token = jwt.sign({ id: patient_id, role: 'patient', role_type: null }, JWT_SECRET, { expiresIn: '8h' });
 
     // Log registration event
@@ -66,28 +78,45 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    let user;
-    if (role === 'patient') {
-      user = await Patient.findOne({ where: { email } });
-    } else if (role === 'provider') {
-      user = await Provider.findOne({ where: { email } });
-    } else {
+    if (role !== 'patient' && role !== 'provider') {
       return res.status(400).json({ error: 'Invalid role specified.' });
     }
 
-    if (!user) {
+    // Single lookup against the unified accounts table
+    const account = await Account.findOne({ where: { email } });
+
+    if (!account) {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    console.log(`Login attempt for ${email}. Password hash exists: ${!!user.password_hash}`);
+    // Ensure the account role matches what the user selected on the login form
+    if (account.role !== role) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    console.log(`Login attempt for ${email}. Password hash exists: ${!!account.password_hash}`);
+
+    const isMatch = await bcrypt.compare(password, account.password_hash);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    const userId = role === 'patient' ? (user as Patient).patient_id : (user as Provider).provider_id;
-    const roleType = (user as any).role_type || null;
+    // Fetch the linked domain record to get user-specific fields
+    let user: any;
+    let userId: string;
+    let roleType: string | null = null;
+
+    if (role === 'patient') {
+      user = await Patient.findOne({ where: { account_id: account.account_id } });
+      if (!user) return res.status(401).json({ error: 'Invalid credentials.' });
+      userId = user.patient_id;
+    } else {
+      user = await Provider.findOne({ where: { account_id: account.account_id } });
+      if (!user) return res.status(401).json({ error: 'Invalid credentials.' });
+      userId = user.provider_id;
+      roleType = user.role_type || null;
+    }
+
     const token = jwt.sign({ id: userId, role, role_type: roleType }, JWT_SECRET, { expiresIn: '8h' });
 
     // Log login event
@@ -107,7 +136,7 @@ export const login = async (req: Request, res: Response) => {
         first_name: user.first_name,
         last_name: user.last_name,
         role,
-        role_type: (user as any).role_type || null,
+        role_type: roleType,
         prc_license_number: (user as any).prc_license_number || null
       }
     });
@@ -116,3 +145,4 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+

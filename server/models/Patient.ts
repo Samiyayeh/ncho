@@ -1,4 +1,5 @@
-import { Table, Column, Model, DataType, HasMany, PrimaryKey, IsEmail, Unique } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, HasMany, PrimaryKey, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Account } from './Account';
 import { Encounter } from './Encounter';
 import { MedicalRecord } from './MedicalRecord';
 import { QrAccessToken } from './QrAccessToken';
@@ -17,6 +18,16 @@ export class Patient extends Model {
   })
   declare patient_id: string;
 
+  @ForeignKey(() => Account)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false
+  })
+  declare account_id: number;
+
+  @BelongsTo(() => Account, { as: 'Account', onDelete: 'CASCADE' })
+  declare Account: Account;
+
   @Column({
     type: DataType.STRING(100),
     allowNull: false
@@ -28,20 +39,6 @@ export class Patient extends Model {
     allowNull: false
   })
   declare last_name: string;
-
-  @IsEmail
-  @Unique
-  @Column({
-    type: DataType.STRING(255),
-    allowNull: false
-  })
-  declare email: string;
-
-  @Column({
-    type: DataType.STRING(255),
-    allowNull: false
-  })
-  declare password_hash: string;
 
   @Column(DataType.DATEONLY)
   declare date_of_birth: Date;
@@ -60,7 +57,6 @@ export class Patient extends Model {
 
   @Column(DataType.TEXT)
   declare address: string;
-
 
   @Column(DataType.BOOLEAN)
   declare voter_registered: boolean;

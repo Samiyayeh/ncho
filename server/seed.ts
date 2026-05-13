@@ -1,4 +1,5 @@
 import sequelize from './config/db';
+import { Account } from './models/Account';
 import { Patient } from './models/Patient';
 import { Provider } from './models/Provider';
 import { Encounter } from './models/Encounter';
@@ -21,14 +22,13 @@ async function seed() {
 
     const passwordHash = await bcrypt.hash('password123', 10);
 
-    // 2. Seed Patients
-    const patients = [
+    // 2. Seed Patients (Account first, then Patient)
+    const patientSeeds = [
       {
+        email: 'john.doe@example.com',
         patient_id: 'NCH-2026-000001',
         first_name: 'John',
         last_name: 'Doe',
-        email: 'john.doe@example.com',
-        password_hash: passwordHash,
         date_of_birth: '1990-05-15',
         gender: 'Male',
         blood_type: 'O+',
@@ -40,11 +40,10 @@ async function seed() {
         address: '123 Naga St, Concepcion Pequeña, Naga City'
       },
       {
+        email: 'jane.smith@example.com',
         patient_id: 'NCH-2026-000002',
         first_name: 'Jane',
         last_name: 'Smith',
-        email: 'jane.smith@example.com',
-        password_hash: passwordHash,
         date_of_birth: '1985-11-22',
         gender: 'Female',
         blood_type: 'A-',
@@ -56,11 +55,10 @@ async function seed() {
         address: '456 Panganiban Drive, Naga City'
       },
       {
+        email: 'juan.dc@example.com',
         patient_id: 'NCH-2026-000003',
         first_name: 'Juan',
         last_name: 'Dela Cruz',
-        email: 'juan.dc@example.com',
-        password_hash: passwordHash,
         date_of_birth: '1998-01-30',
         gender: 'Male',
         blood_type: 'B+',
@@ -72,85 +70,91 @@ async function seed() {
       }
     ];
 
-    for (const p of patients) {
-      await Patient.create(p as any);
+    for (const p of patientSeeds) {
+      const account = await Account.create({
+        email: p.email,
+        password_hash: passwordHash,
+        role: 'patient'
+      });
+      const { email, ...patientData } = p;
+      await Patient.create({ ...patientData, account_id: account.account_id } as any);
     }
-    console.log(`${patients.length} Patients seeded.`);
+    console.log(`${patientSeeds.length} Patients seeded.`);
 
-    // 3. Seed Providers (All Roles with PRC Licenses)
-    const providers = [
+    // 3. Seed Providers (Account first, then Provider)
+    const providerSeeds = [
       {
+        email: 'alice.walker@ncho.gov',
         provider_id: 'PRV-2026-1001',
         first_name: 'Alice',
         last_name: 'Walker',
         specialty: 'Internal Medicine',
-        email: 'alice.walker@ncho.gov',
-        password_hash: passwordHash,
         contact_number: '09123456781',
         prc_license_number: 'PHY-112233',
         role_type: 'PHYSICIAN'
       },
       {
+        email: 'bob.ross@ncho.gov',
         provider_id: 'PRV-2026-1002',
         first_name: 'Bob',
         last_name: 'Ross',
         specialty: 'Triage & Vital Signs',
-        email: 'bob.ross@ncho.gov',
-        password_hash: passwordHash,
         contact_number: '09123456782',
         prc_license_number: 'NUR-445566',
         role_type: 'TRIAGE_NURSE'
       },
       {
+        email: 'charlie.brown@ncho.gov',
         provider_id: 'PRV-2026-1003',
         first_name: 'Charlie',
         last_name: 'Brown',
         specialty: 'Clinical Pharmacy',
-        email: 'charlie.brown@ncho.gov',
-        password_hash: passwordHash,
         contact_number: '09123456783',
         prc_license_number: 'PHA-778899',
         role_type: 'PHARMACIST'
       },
       {
+        email: 'diana.prince@ncho.gov',
         provider_id: 'PRV-2026-1004',
         first_name: 'Diana',
         last_name: 'Prince',
         specialty: 'General Dentistry',
-        email: 'diana.prince@ncho.gov',
-        password_hash: passwordHash,
         contact_number: '09123456784',
         prc_license_number: 'DEN-998877',
         role_type: 'DENTIST'
       },
       {
+        email: 'ethan.hunt@ncho.gov',
         provider_id: 'PRV-2026-1005',
         first_name: 'Ethan',
         last_name: 'Hunt',
         specialty: 'Community Welfare',
-        email: 'ethan.hunt@ncho.gov',
-        password_hash: passwordHash,
         contact_number: '09123456785',
         prc_license_number: 'RSW-665544',
         role_type: 'SOCIAL_WORKER'
       },
       {
+        email: 'sarah.connor@ncho.gov',
         provider_id: 'PRV-2026-1006',
         first_name: 'Sarah',
         last_name: 'Connor',
         specialty: 'Program Specialist (TB/YAKAP)',
-        email: 'sarah.connor@ncho.gov',
-        password_hash: passwordHash,
         contact_number: '09123456786',
         prc_license_number: 'SPE-223344',
         role_type: 'SPECIALIST'
       }
     ];
 
-    for (const pr of providers) {
-      await Provider.create(pr as any);
+    for (const pr of providerSeeds) {
+      const account = await Account.create({
+        email: pr.email,
+        password_hash: passwordHash,
+        role: 'provider'
+      });
+      const { email, ...providerData } = pr;
+      await Provider.create({ ...providerData, account_id: account.account_id } as any);
     }
-    console.log(`${providers.length} Providers seeded (All roles covered).`);
+    console.log(`${providerSeeds.length} Providers seeded (All roles covered).`);
 
     // 4. Seed Encounters (Ensure every patient has a first encounter)
     console.log('Seeding initial encounters...');
@@ -185,4 +189,4 @@ async function seed() {
   }
 }
 
-seed();
+seed();
