@@ -36,7 +36,7 @@ export class Prescription extends Model {
   declare dosage: string;
 
   @Column({
-    type: DataType.ENUM('OD', 'BID', 'TID', 'QID'),
+    type: DataType.STRING(100),
     allowNull: false
   })
   declare frequency: string;

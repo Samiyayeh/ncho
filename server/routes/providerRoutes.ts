@@ -8,11 +8,7 @@ import {
   getPatientEncounters,
   getAdminAuditLogs,
   scanQr,
-  patientLookup,
-  verifyPatient,
-  getPendingVerifications,
-  reviewPatientVerification,
-  viewIdImage
+  patientLookup
 } from '../controllers/providerController';
 import { authenticateToken } from '../middlewares/authMiddleware';
 import { auditLogger } from '../middlewares/auditLogger';
@@ -43,24 +39,13 @@ router.get('/encounters/:patientId', auditLogger('Accessed Patient Encounter His
 router.delete('/medical-records/:recordId', auditLogger('Soft Deleted Medical Record'), deleteMedicalRecord);
 
 // GET system audit logs (admin view)
-router.get('/audit-logs', getAdminAuditLogs);
+router.get('/audit-logs', auditLogger('Accessed Administrative Audit Logs'), getAdminAuditLogs);
 
 // POST scan patient QR code
-router.post('/scan-qr', scanQr);
+router.post('/scan-qr', auditLogger('Verified Patient Identity via QR Scan'), scanQr);
 
 // GET patient lookup
 router.get('/patient-lookup', auditLogger('Accessed Patient Record via Lookup/Quick Access'), patientLookup);
 
-// POST verify patient
-router.post('/verify-patient', verifyPatient);
-
-// GET pending verifications
-router.get('/pending-verifications', getPendingVerifications);
-
-// PUT review patient verification
-router.put('/verify-patient/:patient_id', reviewPatientVerification);
-
-// GET view ID image securely
-router.get('/view-id/:filename', viewIdImage);
 
 export default router;

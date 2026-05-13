@@ -185,9 +185,8 @@ export function PrivacyLogs() {
                                 if (endpoint.includes('/encounters')) return "Clinical Visit History";
                                 if (endpoint.includes('/privacy-logs')) return "Data Transparency Logs";
                                 if (endpoint.includes('/scan-qr')) return "QR Verification Checkpoint";
-                                if (endpoint.includes('/verify-patient')) return "Physical ID Verification";
+                                if (endpoint.includes('/medical-records/upload')) return "Medical Document Upload";
                                 if (endpoint.includes('/encounter')) return "Clinical Treatment Record (Digital ITR)";
-                                if (endpoint.includes('/medical-records/upload')) return "Document Attachment Upload";
                                 return "NCHO System Module";
                               })()}
                             </span>

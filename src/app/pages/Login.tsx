@@ -144,22 +144,6 @@ export function Login() {
             </button>
           </form>
 
-          {/* Provider 2FA Notice */}
-          {role === "provider" && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-              <div className="flex gap-3">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-yellow-900">
-                    <span className="font-bold">Provider Access requires Two-Factor Authentication (2FA).</span>
-                    <br />
-                    Check your email for the secure link after clicking Login.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Additional Links */}
           <div className="mt-6 text-center space-y-2">
             <Link to="/" className="block text-sm text-blue-600 hover:underline">

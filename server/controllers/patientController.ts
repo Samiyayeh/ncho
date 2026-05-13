@@ -9,6 +9,7 @@ import { Prescription } from '../models/Prescription';
 import { QrAccessToken } from '../models/QrAccessToken';
 import { Op } from 'sequelize';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 export const getQrToken = async (req: AuthRequest, res: Response) => {
   try {
@@ -123,6 +124,41 @@ export const getPatientPrivacyLogs = async (req: AuthRequest, res: Response) => 
     res.status(200).json(logs);
   } catch (error) {
     console.error('Error fetching patient privacy logs:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+export const changePassword = async (req: AuthRequest, res: Response) => {
+  try {
+    const patientId = req.user?.id;
+    if (!patientId) return res.status(403).json({ error: 'Unauthorized' });
+
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+    }
+
+    const patient = await Patient.findByPk(patientId);
+    if (!patient) return res.status(404).json({ error: 'Patient not found.' });
+
+    const isMatch = await bcrypt.compare(currentPassword, patient.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Incorrect current password.' });
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    
+    await patient.update({ password_hash: newPasswordHash });
+
+    // Note: We don't need to manually create an AuditLog here if we use the auditLogger middleware in the routes
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('Error changing password:', error);
     res.status(500).json({ error: 'Internal server error.' });
   }
 };

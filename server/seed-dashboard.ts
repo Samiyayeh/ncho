@@ -96,7 +96,6 @@ async function seed() {
         voter_registered: true,
         household_head: i % 5 === 0,
         address: `${Math.floor(Math.random() * 999) + 1} Main St, Naga City`,
-        verification_status: 'VERIFIED'
       } as any);
       patients.push(p);
     }

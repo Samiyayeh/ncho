@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Save, Activity, Clipboard, Pill, X, Shield, Clock, CheckCircle2, AlertTriangle, FileText } from "lucide-react";
 import { ProviderLayout } from "../components/ProviderLayout";
@@ -28,26 +28,20 @@ export function EncounterWorkspace() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyData, setHistoryData] = useState({ encounters: [], records: [] });
 
-  // ── Draft persistence helpers ──────────────────────────────────────────────
-  const DRAFT_KEY = `ncho_encounter_draft_${encounterId}`;
-  const loadDraft = () => {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return null; }
-  };
-  const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
+  // ── Backend Draft Logic ──────────────────────────────────────────────
+  const clearDraft = () => {}; // No-op now that we use backend
 
-  const draft = loadDraft();
-
-  // Form State — initialized from draft if available
-  const [vitals, setVitals] = useState(draft?.vitals ?? {
+  // Form State
+  const [vitals, setVitals] = useState({
     bp_systolic: "",
     bp_diastolic: "",
     temperature: "",
     weight: "",
   });
 
-  const [prescriptions, setPrescriptions] = useState<any[]>(draft?.prescriptions ?? []);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
 
-  const [clinical, setClinical] = useState(draft?.clinical ?? {
+  const [clinical, setClinical] = useState({
     chief_complaint: "",
     diagnosis: "",
     treatment_plan: "",
@@ -55,22 +49,77 @@ export function EncounterWorkspace() {
 
   // First-encounter patient fields
   const [isFirstEncounter, setIsFirstEncounter] = useState(false);
-  const [patientBloodType, setPatientBloodType] = useState(draft?.patientBloodType ?? "");
-  const [patientAllergies, setPatientAllergies] = useState(draft?.patientAllergies ?? "");
+  const [patientBloodType, setPatientBloodType] = useState("");
+  const [patientAllergies, setPatientAllergies] = useState("");
 
   const user = JSON.parse(localStorage.getItem('ncho_user') || '{}');
   const roleType = user.role_type || 'PHYSICIAN';
 
+  // Backend Auto-Save indicator
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Auto-save draft whenever form changes
   useEffect(() => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ vitals, clinical, prescriptions, patientBloodType, patientAllergies }));
-  }, [vitals, clinical, prescriptions, patientBloodType, patientAllergies]);
+    if (loading) return; // Don't auto-save while initially loading
+    
+    setIsSavingDraft(true);
+    
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    
+    draftTimerRef.current = setTimeout(async () => {
+      try {
+        const payload = {
+          bp_systolic: vitals.bp_systolic,
+          bp_diastolic: vitals.bp_diastolic,
+          temperature: vitals.temperature,
+          weight_kg: vitals.weight,
+          chief_complaint: clinical.chief_complaint,
+          diagnosis: clinical.diagnosis,
+          treatment_plan: clinical.treatment_plan,
+          prescriptions: prescriptions.map(rx => ({
+            ...rx,
+            duration_days: parseInt(rx.duration_days) || 0
+          }))
+        };
+        await api.put(`/encounters/${encounterId}/draft`, payload);
+      } catch (err) {
+        console.error("Failed to save draft to backend:", err);
+      } finally {
+        setIsSavingDraft(false);
+      }
+    }, 1500);
+
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
+  }, [vitals, clinical, prescriptions, encounterId, loading]);
 
   useEffect(() => {
     const fetchEncounter = async () => {
       try {
         const data = await api.get(`/encounters/${encounterId}`);
         setEncounter(data);
+        
+        // Hydrate state from backend
+        if (data.bp_systolic) setVitals(v => ({ ...v, bp_systolic: data.bp_systolic.toString() }));
+        if (data.bp_diastolic) setVitals(v => ({ ...v, bp_diastolic: data.bp_diastolic.toString() }));
+        if (data.temperature) setVitals(v => ({ ...v, temperature: data.temperature.toString() }));
+        if (data.weight) setVitals(v => ({ ...v, weight: data.weight.toString() }));
+        
+        if (data.chief_complaint) setClinical(c => ({ ...c, chief_complaint: data.chief_complaint }));
+        if (data.diagnosis) setClinical(c => ({ ...c, diagnosis: data.diagnosis }));
+        if (data.treatment_plan) setClinical(c => ({ ...c, treatment_plan: data.treatment_plan }));
+        
+        if (data.Prescriptions && data.Prescriptions.length > 0) {
+          setPrescriptions(data.Prescriptions.map((rx: any) => ({
+            medication_name: rx.medication_name,
+            dosage: rx.dosage,
+            frequency: rx.frequency,
+            duration_days: rx.duration_days.toString()
+          })));
+        }
+
         // Detect first encounter: check if patient has any prior COMPLETED encounters
         const priorEncounters = await api.get(`/provider/encounters/${data.patient_id}`);
         if (priorEncounters.length === 0) {
@@ -204,7 +253,14 @@ export function EncounterWorkspace() {
                 Patient ID: <span className="font-bold text-blue-600">{encounter.Patient?.patient_id}</span>
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-4">
+              <div className="text-sm font-medium text-gray-400">
+                {isSavingDraft ? (
+                  <span className="flex items-center gap-1"><Clock className="w-4 h-4 animate-spin" /> Saving draft...</span>
+                ) : (
+                  <span className="flex items-center gap-1 text-green-500"><CheckCircle2 className="w-4 h-4" /> Draft saved</span>
+                )}
+              </div>
               <button
                 onClick={handleRequestFinalize}
                 disabled={saving}

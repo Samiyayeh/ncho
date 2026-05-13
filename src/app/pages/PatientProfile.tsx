@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Calendar, ChevronRight, LogOut, Shield, KeyRound, Smartphone } from "lucide-react";
+import { Mail, Phone, MapPin, Calendar, ChevronRight, LogOut, Shield, KeyRound, Smartphone, X } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { PatientBottomNav } from "../components/PatientBottomNav";
 import { useEffect, useState } from "react";
@@ -8,6 +8,43 @@ export function PatientProfile() {
   const [patient, setPatient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Password Change State
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await api.post('/patient/password', { currentPassword, newPassword });
+      setPasswordSuccess("Password updated successfully.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setPasswordSuccess("");
+      }, 2000);
+    } catch (err: any) {
+      setPasswordError(err.message || "Failed to update password.");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -100,21 +137,15 @@ export function PatientProfile() {
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Security</h3>
           </div>
           <div className="space-y-2">
-            <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition">
+            <button 
+              onClick={() => setShowPasswordModal(true)}
+              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <span className="font-medium text-gray-900">Change Password</span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
-            <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-teal-50 text-teal-600 rounded-lg">
-                  <Smartphone className="w-4 h-4" />
-                </div>
-                <span className="font-medium text-gray-900">Two-Factor Authentication</span>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
@@ -130,6 +161,91 @@ export function PatientProfile() {
           Log Out
         </button>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-gray-900">Change Password</h3>
+              </div>
+              <button 
+                onClick={() => setShowPasswordModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-200 rounded-full transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handlePasswordChange} className="p-6">
+              {passwordError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="mb-4 p-3 bg-green-50 text-green-600 text-sm rounded-lg border border-green-100">
+                  {passwordSuccess}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Current Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none transition"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters long.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Confirm New Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={changingPassword || passwordSuccess !== ""}
+                  className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                >
+                  {changingPassword ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <PatientBottomNav />

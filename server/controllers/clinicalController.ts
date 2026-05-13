@@ -46,7 +46,8 @@ export const getEncounter = async (req: AuthRequest, res: Response) => {
     const { encounter_id } = req.params;
     const encounter = await Encounter.findByPk(encounter_id as string, {
       include: [
-        { model: Patient, as: 'Patient' }
+        { model: Patient, as: 'Patient' },
+        { model: Prescription, as: 'Prescriptions' }
       ]
     });
     
@@ -120,14 +121,22 @@ export const saveClinical = async (req: AuthRequest, res: Response) => {
     const provider_id = req.user?.id;
     if (!provider_id) throw new Error('Unauthorized');
 
+    // 1. Enforce Required Fields Validation (per user request)
+    if (!bp_systolic || !bp_diastolic || !temperature || !weight_kg || !chief_complaint || !diagnosis) {
+      return res.status(400).json({ 
+        error: 'Incomplete Encounter Data. Blood Pressure, Temperature, Weight, Chief Complaint, and Diagnosis are all required.' 
+      });
+    }
+
     const encounter = await Encounter.findByPk(encounter_id, { transaction });
     if (!encounter) return res.status(404).json({ error: 'Encounter not found.' });
 
     // Set patient_id for audit logger
     (req as any).patient_id = encounter.patient_id;
 
+    // Fetch the actual provider to get their PRC license for the e-prescription
     const prescriber = await Provider.findByPk(provider_id as string, { transaction });
-    const prcNumber = prescriber?.prc_license_number;
+    const prcNumber = prescriber?.prc_license_number || 'N/A';
 
     await encounter.update({
       bp_systolic: bp_systolic ? parseInt(bp_systolic) : null,
@@ -271,6 +280,73 @@ export const getDpaFeed = async (req: AuthRequest, res: Response) => {
     res.status(200).json(logs);
   } catch (error: any) {
     console.error('DPA Feed Error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error.' });
+  }
+};
+
+export const updateDraft = async (req: AuthRequest, res: Response) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { encounter_id } = req.params;
+    const { 
+      bp_systolic, bp_diastolic, temperature, weight_kg,
+      chief_complaint, diagnosis, treatment_plan, prescriptions
+    } = req.body;
+    
+    const provider_id = req.user?.id;
+    if (!provider_id) throw new Error('Unauthorized');
+
+    const encounter = await Encounter.findByPk(encounter_id, { transaction });
+    if (!encounter) return res.status(404).json({ error: 'Encounter not found.' });
+
+    // Only allow updating drafts for IN_PROGRESS encounters
+    if (encounter.status !== 'IN_PROGRESS') {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'Cannot update draft of a completed or cancelled encounter.' });
+    }
+
+    // Set patient_id for audit logger
+    (req as any).patient_id = encounter.patient_id;
+
+    await encounter.update({
+      bp_systolic: bp_systolic ? parseInt(bp_systolic) : null,
+      bp_diastolic: bp_diastolic ? parseInt(bp_diastolic) : null,
+      temperature: temperature ? parseFloat(temperature) : null,
+      weight: weight_kg ? parseFloat(weight_kg) : null,
+      chief_complaint: chief_complaint || null,
+      diagnosis: diagnosis || null,
+      treatment_plan: treatment_plan || null
+      // We do not change the status here, it stays IN_PROGRESS
+    }, { transaction });
+
+    // Update Prescriptions draft
+    const hasMeds = prescriptions && Array.isArray(prescriptions);
+    if (hasMeds) {
+      // Clear existing draft prescriptions for this encounter
+      await Prescription.destroy({ where: { encounter_id }, transaction });
+
+      const prescriber = await Provider.findByPk(provider_id as string, { transaction });
+      const prcNumber = prescriber?.prc_license_number || 'N/A';
+
+      for (const rx of prescriptions) {
+        if (rx.medication_name) {
+          await Prescription.create({
+            encounter_id: encounter.encounter_id,
+            medication_name: rx.medication_name,
+            dosage: rx.dosage,
+            frequency: rx.frequency,
+            duration_days: rx.duration_days || 0,
+            prescriber_prc_number: prcNumber
+          }, { transaction });
+        }
+      }
+    }
+
+    await transaction.commit();
+    res.status(200).json({ message: 'Draft saved successfully.' });
+  } catch (error: any) {
+    await transaction.rollback();
+    console.error('Update Draft Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error.' });
   }
 };

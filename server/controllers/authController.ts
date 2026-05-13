@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Patient } from '../models/Patient';
 import { Provider } from '../models/Provider';
-
+import { AuditLog } from '../models/AuditLog';
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_change_me';
 
 export const registerPatient = async (req: Request, res: Response) => {
@@ -32,6 +32,14 @@ export const registerPatient = async (req: Request, res: Response) => {
 
     // Generate token for auto-login
     const token = jwt.sign({ id: patient_id, role: 'patient', role_type: null }, JWT_SECRET, { expiresIn: '8h' });
+
+    // Log registration event
+    await AuditLog.create({
+      patient_id: patient_id,
+      action_taken: 'New Patient Account Registered',
+      endpoint_accessed: '/api/auth/register/patient',
+      ip_address: req.ip || req.socket.remoteAddress || 'Unknown'
+    });
 
     res.status(201).json({ 
       message: 'Patient registered successfully', 
@@ -81,6 +89,15 @@ export const login = async (req: Request, res: Response) => {
     const userId = role === 'patient' ? (user as Patient).patient_id : (user as Provider).provider_id;
     const roleType = (user as any).role_type || null;
     const token = jwt.sign({ id: userId, role, role_type: roleType }, JWT_SECRET, { expiresIn: '8h' });
+
+    // Log login event
+    await AuditLog.create({
+      provider_id: role === 'provider' ? userId : null,
+      patient_id: role === 'patient' ? userId : null,
+      action_taken: `User Login (${role.toUpperCase()})`,
+      endpoint_accessed: '/api/auth/login',
+      ip_address: req.ip || req.socket.remoteAddress || 'Unknown'
+    });
 
     res.status(200).json({
       message: 'Login successful',

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getPatientProfile, getPatientRecords, getPatientEncounters, getPatientPrivacyLogs, getQrToken } from '../controllers/patientController';
+import { getPatientProfile, getPatientRecords, getPatientEncounters, getPatientPrivacyLogs, getQrToken, changePassword } from '../controllers/patientController';
 import { authenticateToken } from '../middlewares/authMiddleware';
 import { auditLogger } from '../middlewares/auditLogger';
 
@@ -22,5 +22,7 @@ router.get('/privacy-logs', getPatientPrivacyLogs); // No audit log on this one 
 
 // GET /api/patient/qr-token
 router.get('/qr-token', auditLogger('Accessed Health Passport QR Code'), getQrToken);
+// POST /api/patient/password
+router.post('/password', auditLogger('Changed Account Password'), changePassword);
 
 export default router;
