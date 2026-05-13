@@ -142,9 +142,9 @@ export function LandingPage() {
                 <UserCheck className="w-6 h-6 text-teal-500" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Patient-Controlled</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Access Transparency</h3>
                 <p className="text-gray-600">
-                  You decide who can access your records. Track every access with detailed audit logs you can review anytime.
+                  Monitor exactly who accesses your health data. Track every interaction with detailed audit logs available for your review at any time.
                 </p>
               </div>
             </div>
