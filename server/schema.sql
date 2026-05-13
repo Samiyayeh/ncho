@@ -165,20 +165,7 @@ CREATE TABLE `qr_access_tokens` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `referrals`
---
 
-CREATE TABLE `referrals` (
-  `referral_id` int(11) NOT NULL,
-  `encounter_id` int(11) NOT NULL,
-  `destination_facility` varchar(255) NOT NULL,
-  `reason_for_referral` text NOT NULL,
-  `status` enum('OUTBOUND','RETURNED_WITH_RESULTS','CLOSED') NOT NULL DEFAULT 'OUTBOUND',
-  `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
 -- Indexes for dumped tables
 --
 
@@ -238,14 +225,7 @@ ALTER TABLE `qr_access_tokens`
 
 
 
---
--- Indexes for table `referrals`
---
-ALTER TABLE `referrals`
-  ADD PRIMARY KEY (`referral_id`),
-  ADD KEY `encounter_id` (`encounter_id`);
 
---
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -279,13 +259,7 @@ ALTER TABLE `prescriptions`
 ALTER TABLE `qr_access_tokens`
   MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `referrals`
---
-ALTER TABLE `referrals`
-  MODIFY `referral_id` int(11) NOT NULL AUTO_INCREMENT;
 
---
 -- Constraints for dumped tables
 --
 
@@ -325,11 +299,6 @@ ALTER TABLE `qr_access_tokens`
 
 
 
---
--- Constraints for table `referrals`
---
-ALTER TABLE `referrals`
-  ADD CONSTRAINT `referrals_ibfk_1` FOREIGN KEY (`encounter_id`) REFERENCES `encounters` (`encounter_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

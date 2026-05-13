@@ -41,19 +41,7 @@ async function migrate() {
     )
   `, "Create QUEUES table");
 
-  // 4. Create REFERRALS table
-  await runQuery(`
-    CREATE TABLE REFERRALS (
-      referral_id INT AUTO_INCREMENT PRIMARY KEY,
-      encounter_id INT NOT NULL,
-      destination_facility VARCHAR(255) NOT NULL,
-      reason_for_referral TEXT NOT NULL,
-      status ENUM('OUTBOUND', 'RETURNED_WITH_RESULTS', 'CLOSED') NOT NULL DEFAULT 'OUTBOUND',
-      created_at DATETIME NOT NULL,
-      updated_at DATETIME NOT NULL,
-      FOREIGN KEY (encounter_id) REFERENCES ENCOUNTERS(encounter_id) ON DELETE CASCADE
-    )
-  `, "Create REFERRALS table");
+
 
   console.log('Migration process finished.');
   process.exit(0);

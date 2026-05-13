@@ -5,8 +5,6 @@ import { Encounter } from './models/Encounter';
 import { Prescription } from './models/Prescription';
 import { MedicalRecord } from './models/MedicalRecord';
 import { AuditLog } from './models/AuditLog';
-import { QrAccessToken } from './models/QrAccessToken';
-// import { Referral } from './models/Referral';
 import bcrypt from 'bcrypt';
 
 async function seed() {
