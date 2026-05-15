@@ -444,8 +444,8 @@ export function MedicalRecords() {
                 <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedRx(null)} />
                 <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-300">
                   <div className="p-8 bg-gradient-to-br from-blue-600 to-indigo-700 text-white relative">
-                    <Pill className="absolute -right-6 -top-6 w-32 h-32 text-white/10 rotate-12" />
-                    <div className="flex justify-between items-start mb-6">
+                    <Pill className="absolute -right-6 -top-6 w-32 h-32 text-white/10 rotate-12 pointer-events-none" />
+                    <div className="flex justify-between items-start mb-6 relative z-10">
                       <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
                         <Activity className="w-6 h-6 text-white" />
                       </div>
