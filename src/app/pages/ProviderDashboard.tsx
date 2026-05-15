@@ -76,7 +76,9 @@ export function ProviderDashboard() {
     setLoadingLogs(true);
     try {
       const data = await api.get('/encounters/dpa-feed');
-      setDpaLogs(data);
+      // Only keep patient-related logs
+      const patientLogs = data.filter((log: any) => log.Patient != null);
+      setDpaLogs(patientLogs);
     } catch (e) {
       console.error('Failed to fetch DPA feed', e);
     } finally {
@@ -125,7 +127,7 @@ export function ProviderDashboard() {
         {/* ── Page Header ─────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Provider Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Health Care Provider Dashboard</h1>
             <p className="text-gray-500 text-sm mt-1">
               Welcome back, {providerName}. Here is your clinical overview for today.
             </p>
@@ -149,46 +151,32 @@ export function ProviderDashboard() {
         <div className="grid lg:grid-cols-3 gap-8 mb-10">
           
           {/* Daily Progress Summary */}
-          <div className="lg:col-span-1 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden flex flex-col justify-center">
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <UserCheck className="w-5 h-5 text-blue-200" />
-                <h2 className="text-sm font-bold uppercase tracking-wider text-blue-100">Patients Seen Today</h2>
+          <div className="lg:col-span-3 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 text-white relative overflow-hidden flex flex-col justify-center">
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <UserCheck className="w-6 h-6 text-blue-200" />
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-blue-100">Patients Seen Today</h2>
+                </div>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-7xl font-black leading-none">
+                    {loadingStats ? '...' : stats?.myCompletedToday ?? 0}
+                  </span>
+                  <span className="text-xl font-medium text-blue-100 opacity-80">
+                    Total Consultations
+                  </span>
+                </div>
+                <p className="text-xs text-blue-200 mt-4 font-medium uppercase tracking-widest">
+                  Personal daily performance
+                </p>
               </div>
-              <div className="flex items-baseline gap-3">
-                <span className="text-7xl font-black leading-none">
-                  {loadingStats ? '...' : stats?.myCompletedToday ?? 0}
-                </span>
-                <span className="text-xl font-medium text-blue-100 opacity-80">
-                  Total Consultations
-                </span>
+              <div className="hidden md:flex flex-col items-end text-right">
+                 <p className="text-2xl font-black text-white/90">Keep up the great work!</p>
+                 <p className="text-sm text-blue-200 mt-2 max-w-xs">Your dedication ensures high-quality care for all your patients.</p>
               </div>
-              <p className="text-xs text-blue-200 mt-4 font-medium uppercase tracking-widest">
-                Personal daily performance
-              </p>
             </div>
             {/* Decorative background element */}
-            <Activity className="absolute -right-8 -bottom-8 w-48 h-48 text-white/5 rotate-12" />
-          </div>
-
-          {/* System Overview KPIs */}
-          <div className="lg:col-span-2 grid md:grid-cols-2 gap-6">
-            <KpiCard
-              label="Active Sessions"
-              value={stats?.activeSessions ?? 0}
-              icon={Activity}
-              colorClass="text-orange-600"
-              bgClass="bg-orange-50"
-              description="Encounters currently in progress across the system"
-            />
-            <KpiCard
-              label="Total System Completions"
-              value={stats?.completedToday ?? 0}
-              icon={CheckCircle2}
-              colorClass="text-green-600"
-              bgClass="bg-green-50"
-              description="All consultations finalized today in NCHO"
-            />
+            <Activity className="absolute -right-8 -bottom-8 w-64 h-64 text-white/5 rotate-12" />
           </div>
         </div>
 
@@ -219,8 +207,19 @@ export function ProviderDashboard() {
                     <p className="text-sm font-medium">No recent consultations</p>
                     <p className="text-xs">Your completed encounters will appear here.</p>
                   </div>
-                ) : (
-                  stats.recentEncounters.map((enc) => (
+                ) : (() => {
+                  const uniqueEncounters = [];
+                  const seen = new Set();
+                  for (const enc of stats.recentEncounters) {
+                    const pid = enc.Patient?.patient_id;
+                    if (pid && !seen.has(pid)) {
+                      uniqueEncounters.push(enc);
+                      seen.add(pid);
+                    }
+                    if (uniqueEncounters.length === 5) break;
+                  }
+                  
+                  return uniqueEncounters.map((enc) => (
                     <Link 
                       key={enc.encounter_id}
                       to={`/provider/clinical/${enc.Patient?.patient_id}`}
@@ -248,8 +247,9 @@ export function ProviderDashboard() {
                       </div>
                       <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-400 transform group-hover:translate-x-1 transition" />
                     </Link>
-                  ))
-                )}
+                  ));
+                })()
+                }
               </div>
               
               <Link 
@@ -358,40 +358,33 @@ export function ProviderDashboard() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Timestamp</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Provider</th>
                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Patient</th>
                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">IP Address</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {loadingLogs ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i}>
-                        {Array.from({ length: 5 }).map((__, j) => (
+                        {Array.from({ length: 3 }).map((__, j) => (
                           <td key={j} className="px-6 py-4">
                             <div className="h-4 bg-gray-100 rounded animate-pulse" />
                           </td>
                         ))}
                       </tr>
                     ))
-                  ) : dpaLogs.length === 0 ? (
+                  ) : dpaLogs.filter(log => log.Provider && (log.Provider.last_name === user?.last_name || log.Provider.first_name === user?.first_name)).length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                      <td colSpan={3} className="px-6 py-12 text-center text-gray-400">
                         <Shield className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                        <p className="font-medium">No audit events recorded yet.</p>
+                        <p className="font-medium">No personal audit events recorded yet.</p>
                       </td>
                     </tr>
                   ) : (
-                    dpaLogs.map((log) => (
+                    dpaLogs.filter(log => log.Provider && (log.Provider.last_name === user?.last_name || log.Provider.first_name === user?.first_name)).map((log) => (
                       <tr key={log.log_id} className="hover:bg-gray-50/60 transition">
                         <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap font-mono">
                           {formatTimestamp(log.timestamp)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-bold text-gray-900">
-                            {log.Provider ? `Dr. ${log.Provider.last_name}` : '—'}
-                          </p>
                         </td>
                         <td className="px-6 py-4">
                           {log.Patient ? (
@@ -409,9 +402,6 @@ export function ProviderDashboard() {
                           <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold">
                             {log.action_taken}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-400 font-mono">
-                          {log.ip_address || '—'}
                         </td>
                       </tr>
                     ))

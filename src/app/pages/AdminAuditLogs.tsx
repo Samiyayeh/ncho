@@ -9,19 +9,22 @@ export function AdminAuditLogs() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+  const user = JSON.parse(localStorage.getItem('ncho_user') || '{}');
+  const isAdmin = user.role === 'ADMIN' || user.role_type === 'ADMIN';
 
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const user = JSON.parse(localStorage.getItem('ncho_user') || '{}');
         const data = await api.get('/provider/audit-logs');
+        // Only keep patient-related logs
+        const patientLogs = data.filter((l: any) => l.patient_id != null || l.Patient != null);
         
         // If not an admin, only show logs where provider_id matches current user's ID
-        if (user.role !== 'ADMIN' && user.role_type !== 'ADMIN') {
-          const personalLogs = data.filter((l: any) => String(l.provider_id) === String(user.id));
+        if (!isAdmin) {
+          const personalLogs = patientLogs.filter((l: any) => String(l.provider_id) === String(user.id));
           setLogs(personalLogs);
         } else {
-          setLogs(data);
+          setLogs(patientLogs);
         }
       } catch (error) {
         console.error("Failed to fetch audit logs", error);
@@ -59,7 +62,7 @@ export function AdminAuditLogs() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {JSON.parse(localStorage.getItem('ncho_user') || '{}').role === 'ADMIN' ? 'System Audit Logs' : 'My Activity Log'}
+              {isAdmin ? 'System Audit Logs' : 'My Activity Log'}
             </h1>
             <p className="text-gray-600">Your personalized Data Privacy Act compliance trail</p>
           </div>
@@ -85,12 +88,14 @@ export function AdminAuditLogs() {
             <p className="text-sm text-gray-600 mb-1">Total Events</p>
             <p className="text-2xl font-bold text-gray-900">{loading ? '...' : logs.length}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <p className="text-sm text-gray-600 mb-1">Active Providers</p>
-            <p className="text-2xl font-bold text-teal-500">
-              {loading ? '...' : new Set(logs.map((l: any) => l.provider_id).filter(Boolean)).size}
-            </p>
-          </div>
+          {isAdmin && (
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <p className="text-sm text-gray-600 mb-1">Active Providers</p>
+              <p className="text-2xl font-bold text-teal-500">
+                {loading ? '...' : new Set(logs.map((l: any) => l.provider_id).filter(Boolean)).size}
+              </p>
+            </div>
+          )}
           <div className="bg-white rounded-lg shadow-sm p-4">
             <p className="text-sm text-gray-600 mb-1">Patients Accessed</p>
             <p className="text-2xl font-bold text-blue-600">
@@ -106,27 +111,29 @@ export function AdminAuditLogs() {
               <thead className="bg-gray-50 border-b-2 border-gray-200">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">Timestamp</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">Provider</th>
+                  {isAdmin && <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">Provider</th>}
                   <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">Patient</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">Action Taken</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">IP Address</th>
+                  {isAdmin && <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">IP Address</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {loading ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading audit logs from database...</td></tr>
+                  <tr><td colSpan={isAdmin ? 5 : 3} className="px-6 py-8 text-center text-gray-500">Loading audit logs from database...</td></tr>
                 ) : currentLogs.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No audit logs found.</td></tr>
+                  <tr><td colSpan={isAdmin ? 5 : 3} className="px-6 py-8 text-center text-gray-500">No audit logs found.</td></tr>
                 ) : (
                   currentLogs.map((log: any, index: number) => (
                     <tr key={index} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">{formatTimestamp(log.timestamp)}</td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-gray-900">
-                          {log.Provider ? `Dr. ${log.Provider.last_name}` : log.provider_id || '—'}
-                        </p>
-                        {log.provider_id && <p className="text-xs text-gray-500">{log.provider_id}</p>}
-                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-bold text-gray-900">
+                            {log.Provider ? `Dr. ${log.Provider.last_name}` : log.provider_id || '—'}
+                          </p>
+                          {log.provider_id && <p className="text-xs text-gray-500">{log.provider_id}</p>}
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <p className="text-sm font-bold text-gray-900">
                           {log.Patient ? `${log.Patient.first_name} ${log.Patient.last_name}` : '—'}
@@ -138,7 +145,7 @@ export function AdminAuditLogs() {
                           {log.action_taken || 'Unknown'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{log.ip_address || '—'}</td>
+                      {isAdmin && <td className="px-6 py-4 text-sm text-gray-500">{log.ip_address || '—'}</td>}
                     </tr>
                   ))
                 )}

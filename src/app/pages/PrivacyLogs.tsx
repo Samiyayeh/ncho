@@ -198,7 +198,6 @@ export function PrivacyLogs() {
                           <Clock className="w-3 h-3" />
                           <span>{formatTimestamp(log.timestamp)}</span>
                         </div>
-                        {log.ip_address && <span>IP: {log.ip_address}</span>}
                       </div>
                     </div>
                   </div>

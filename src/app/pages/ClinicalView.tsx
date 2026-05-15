@@ -15,6 +15,8 @@ export function ClinicalView() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [startingEncounter, setStartingEncounter] = useState(false);
+  const [summarySearch, setSummarySearch] = useState("");
+  const [viewingFileUrl, setViewingFileUrl] = useState<string | null>(null);
 
   const handleStartEncounter = async () => {
     try {
@@ -196,36 +198,155 @@ export function ClinicalView() {
             {/* Summary Tab */}
             {activeTab === "summary" && (
               <div className="space-y-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Clock className="w-5 h-5 text-teal-500" />
-                    <h3 className="text-xl font-bold text-gray-900">Recent Visits</h3>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-6 h-6 text-blue-600" />
+                    <h3 className="text-xl font-bold text-gray-900">Comprehensive Medical Summary</h3>
                   </div>
-                  {encounters.length === 0 ? (
-                    <p className="text-gray-500">No encounters recorded yet.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {encounters.slice(0, 3).map((enc: any) => (
-                        <div key={enc.encounter_id} className="p-4 bg-gray-50 rounded-lg border-l-4 border-teal-500">
-                          <div className="flex items-start justify-between mb-2">
-                            <p className="font-bold text-gray-900">{formatDate(enc.encounter_date)}</p>
-                            <p className="text-sm text-gray-600">
-                              {enc.Provider ? `Dr. ${enc.Provider.last_name}` : 'Unknown Provider'}
-                            </p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm text-gray-600">
-                              <span className="font-bold">Chief Complaint:</span> {enc.chief_complaint || 'N/A'}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              <span className="font-bold">Diagnosis:</span> {enc.diagnosis || 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                  <div className="relative w-full md:w-72">
+                      <input
+                        type="text"
+                        placeholder="Search date (e.g. May), diagnosis..."
+                        value={summarySearch}
+                        onChange={(e) => setSummarySearch(e.target.value)}
+                        className="w-full pl-4 pr-10 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none text-sm"
+                      />
+                      {summarySearch && (
+                        <button 
+                          onClick={() => setSummarySearch("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs"
+                        >
+                          Clear
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                
+                {(() => {
+                  const filteredEncounters = encounters.filter(enc => {
+                    if (!summarySearch) return true;
+                    const search = summarySearch.toLowerCase();
+                    const encDateStr = formatDate(enc.encounter_date).toLowerCase();
+                    const providerName = enc.Provider ? `dr. ${enc.Provider.last_name.toLowerCase()}` : '';
+                    const complaint = (enc.chief_complaint || '').toLowerCase();
+                    const diagnosis = (enc.diagnosis || '').toLowerCase();
+                    const meds = (enc.Prescriptions || []).map((rx: any) => rx.medication_name.toLowerCase()).join(' ');
+                    
+                    return encDateStr.includes(search) ||
+                           providerName.includes(search) || 
+                           complaint.includes(search) || 
+                           diagnosis.includes(search) || 
+                           meds.includes(search);
+                  });
+
+                  if (encounters.length === 0) {
+                    return (
+                      <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 border-2 border-dashed border-gray-200">
+                        No medical encounters found for this patient.
+                      </div>
+                    );
+                  }
+
+                  if (filteredEncounters.length === 0) {
+                    return (
+                      <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 border-2 border-dashed border-gray-200">
+                        No encounters match your search query.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-blue-50 border-b-2 border-blue-100">
+                              <th className="p-4 text-xs font-bold text-blue-800 uppercase tracking-widest w-48">Date & Provider</th>
+                              <th className="p-4 text-xs font-bold text-blue-800 uppercase tracking-widest w-1/4">Clinical Assessment</th>
+                              <th className="p-4 text-xs font-bold text-blue-800 uppercase tracking-widest w-1/4">Key Vitals</th>
+                              <th className="p-4 text-xs font-bold text-blue-800 uppercase tracking-widest">Prescribed Medications</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {filteredEncounters.map((enc: any) => (
+                            <tr key={enc.encounter_id} className="hover:bg-gray-50/50 transition align-top">
+                              <td className="p-4 border-r border-gray-50">
+                                <p className="font-bold text-gray-900 mb-1">{formatDate(enc.encounter_date)}</p>
+                                <p className="text-xs font-bold text-gray-500">
+                                  {enc.Provider ? `Dr. ${enc.Provider.last_name}` : 'Unknown Provider'}
+                                </p>
+                                <span className={`inline-block mt-2 px-2 py-0.5 text-[10px] font-bold rounded uppercase ${enc.encounter_type === 'FILE_UPLOAD' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                                  {enc.encounter_type === 'FILE_UPLOAD' ? 'File Upload' : 'Consultation'}
+                                </span>
+                              </td>
+                              <td className="p-4 border-r border-gray-50">
+                                <div className="mb-3">
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Chief Complaint</p>
+                                  <p className="text-sm text-gray-900 font-medium">"{enc.chief_complaint || 'N/A'}"</p>
+                                </div>
+                                <div className="bg-yellow-50 p-2 rounded border border-yellow-100">
+                                  <p className="text-[10px] font-bold text-yellow-600 uppercase tracking-widest mb-0.5">Diagnosis / Impression</p>
+                                  <p className="text-sm font-bold text-gray-900">{enc.diagnosis || 'Pending Results'}</p>
+                                </div>
+                                {enc.encounter_type === 'FILE_UPLOAD' && (() => {
+                                  const linkedRecord = records.find(r => r.encounter_id === enc.encounter_id);
+                                  return linkedRecord?.file_url ? (
+                                    <div className="mt-3">
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setViewingFileUrl(linkedRecord.file_url);
+                                        }}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-lg hover:bg-blue-100 transition text-xs"
+                                      >
+                                        <FileText className="w-3 h-3" />
+                                        View Uploaded Record
+                                      </button>
+                                    </div>
+                                  ) : null;
+                                })()}
+                              </td>
+                              <td className="p-4 border-r border-gray-50">
+                                <div className="space-y-1.5">
+                                  {enc.blood_pressure ? (
+                                    <p className="text-xs text-gray-700"><span className="font-bold text-gray-400 w-8 inline-block">BP:</span> <span className="font-mono">{enc.blood_pressure}</span></p>
+                                  ) : null}
+                                  {enc.heart_rate ? (
+                                    <p className="text-xs text-gray-700"><span className="font-bold text-gray-400 w-8 inline-block">HR:</span> <span className="font-mono">{enc.heart_rate} bpm</span></p>
+                                  ) : null}
+                                  {enc.temperature ? (
+                                    <p className="text-xs text-gray-700"><span className="font-bold text-gray-400 w-8 inline-block">Temp:</span> <span className="font-mono">{enc.temperature} °C</span></p>
+                                  ) : null}
+                                  {!enc.blood_pressure && !enc.heart_rate && !enc.temperature && (
+                                    <p className="text-xs text-gray-400 italic">No vitals recorded</p>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                {enc.Prescriptions && enc.Prescriptions.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {enc.Prescriptions.map((rx: any, i: number) => (
+                                      <div key={i} className="flex flex-col bg-teal-50 p-2 rounded border border-teal-100 min-w-[120px] max-w-[200px]">
+                                        <p className="text-xs font-bold text-teal-900 truncate" title={rx.medication_name}>
+                                          <Pill className="w-3 h-3 inline-block mr-1 text-teal-500" />
+                                          {rx.medication_name}
+                                        </p>
+                                        <p className="text-[10px] text-teal-700 mt-0.5">{rx.dosage} • {rx.frequency}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-gray-400 italic">No medications prescribed</p>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -319,14 +440,12 @@ export function ClinicalView() {
                         <p className="text-sm text-gray-600">{formatDate(rec.created_at)} • {rec.description || 'No description'}</p>
                       </div>
                       {rec.file_url && (
-                        <a
-                          href={rec.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => setViewingFileUrl(rec.file_url)}
                           className="px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-lg hover:bg-blue-100 transition text-sm"
                         >
                           View File
-                        </a>
+                        </button>
                       )}
                     </div>
                   ))
@@ -347,6 +466,41 @@ export function ClinicalView() {
           </div>
         </div>
       </div>
+
+      {/* File Viewer Modal */}
+      {viewingFileUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center gap-2 text-blue-900 font-bold">
+                <FileText className="w-5 h-5" />
+                <h2>Document Viewer</h2>
+              </div>
+              <button 
+                onClick={() => setViewingFileUrl(null)}
+                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition font-bold text-sm"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 bg-gray-100 flex items-center justify-center p-4">
+              {viewingFileUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i) ? (
+                <img 
+                  src={viewingFileUrl} 
+                  alt="Document Viewer" 
+                  className="max-w-full max-h-full object-contain rounded shadow-sm"
+                />
+              ) : (
+                <iframe 
+                  src={viewingFileUrl} 
+                  className="w-full h-full border-none rounded shadow-sm bg-white"
+                  title="Document Viewer"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </ProviderLayout>
   );
 }

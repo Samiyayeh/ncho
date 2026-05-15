@@ -1,16 +1,18 @@
-import { ArrowLeft, FileText, Clock, Pill, X, Activity, Clipboard } from "lucide-react";
+import { ArrowLeft, FileText, Clock, Pill, X, Activity, Clipboard, Search, Filter } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useEffect } from "react";
 import { PatientBottomNav } from "../components/PatientBottomNav";
 import { api } from "../api/client";
 
 export function MedicalRecords() {
-  const [activeTab, setActiveTab] = useState<"records" | "visits" | "medications">("records");
+  const [activeTab, setActiveTab] = useState<"all" | "records" | "visits" | "medications">("all");
   const [records, setRecords] = useState<any[]>([]);
   const [encounters, setEncounters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
   const [selectedRx, setSelectedRx] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "visit" | "document" | "medication">("all");
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -39,8 +41,64 @@ export function MedicalRecords() {
       ...rx,
       encounter_date: enc.encounter_date,
       provider: enc.Provider,
+      encounter: enc,
     }))
   );
+
+  // Combine data for the "Overview" tab
+  const allActivity = [
+    ...encounters.map(e => ({
+      id: `enc-${e.encounter_id}`,
+      type: 'visit',
+      date: e.encounter_date,
+      title: e.chief_complaint || 'Consultation',
+      subtitle: e.Provider ? `Dr. ${e.Provider.last_name}` : 'Unknown Provider',
+      icon: Clock,
+      color: 'text-blue-600',
+      bg: 'bg-blue-100',
+      data: e
+    })),
+    ...records.map(r => ({
+      id: `rec-${r.record_id}`,
+      type: 'document',
+      date: r.created_at,
+      title: r.document_type,
+      subtitle: r.description || (r.Provider ? `Dr. ${r.Provider.last_name}` : 'Uploaded Document'),
+      icon: FileText,
+      color: 'text-orange-600',
+      bg: 'bg-orange-100',
+      data: r
+    })),
+    ...allPrescriptions.map((rx: any, idx: number) => ({
+      id: `rx-${rx.prescription_id || idx}`,
+      type: 'medication',
+      date: rx.encounter_date,
+      title: rx.medication_name,
+      subtitle: `${rx.dosage} - ${rx.frequency}`,
+      icon: Pill,
+      color: 'text-teal-600',
+      bg: 'bg-teal-100',
+      data: rx
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Apply filters
+  const filteredActivity = allActivity.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          item.subtitle.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = filterType === "all" || item.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  const handleActivityClick = (item: any) => {
+    if (item.type === 'visit') {
+      setSelectedVisit(item.data);
+    } else if (item.type === 'medication') {
+      setSelectedRx(item.data);
+    } else if (item.type === 'document' && item.data.file_url) {
+      window.open(item.data.file_url, '_blank');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 pb-24">
@@ -59,33 +117,42 @@ export function MedicalRecords() {
       <div className="max-w-4xl mx-auto px-4">
         {/* Tab Navigation */}
         <div className="bg-white rounded-xl shadow-md mb-4">
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 justify-between items-end">
+            <button
+              onClick={() => setActiveTab("all")}
+              className={`flex-1 py-3 px-1 sm:py-4 sm:px-6 text-center transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 ${
+                activeTab === "all" ? "border-b-2 border-blue-600 text-blue-600 font-bold" : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-[10px] sm:text-sm font-medium">Overview</span>
+            </button>
             <button
               onClick={() => setActiveTab("records")}
-              className={`flex-1 py-4 px-6 text-center transition ${
+              className={`flex-1 py-3 px-1 sm:py-4 sm:px-6 text-center transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === "records" ? "border-b-2 border-blue-600 text-blue-600 font-bold" : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              <FileText className="w-5 h-5 inline-block mr-2" />
-              Records
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-[10px] sm:text-sm font-medium">Documents</span>
             </button>
             <button
               onClick={() => setActiveTab("visits")}
-              className={`flex-1 py-4 px-6 text-center transition ${
+              className={`flex-1 py-3 px-1 sm:py-4 sm:px-6 text-center transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === "visits" ? "border-b-2 border-blue-600 text-blue-600 font-bold" : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              <Clock className="w-5 h-5 inline-block mr-2" />
-              Visit History
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-[10px] sm:text-sm font-medium">Visits</span>
             </button>
             <button
               onClick={() => setActiveTab("medications")}
-              className={`flex-1 py-4 px-6 text-center transition ${
+              className={`flex-1 py-3 px-1 sm:py-4 sm:px-6 text-center transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === "medications" ? "border-b-2 border-blue-600 text-blue-600 font-bold" : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              <Pill className="w-5 h-5 inline-block mr-2" />
-              Medications
+              <Pill className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-[10px] sm:text-sm font-medium">Meds</span>
             </button>
           </div>
         </div>
@@ -94,11 +161,160 @@ export function MedicalRecords() {
           <div className="bg-white rounded-xl shadow-md p-8 text-center text-gray-500">Loading your records...</div>
         ) : (
           <>
+            {/* Overview Tab */}
+            {activeTab === "all" && (
+              <div className="space-y-4">
+                {/* Search and Filter */}
+                <div className="bg-white rounded-xl shadow-md p-4 flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Search records, visits, medications..." 
+                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <select 
+                      className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value as any)}
+                    >
+                      <option value="all">All Types</option>
+                      <option value="visit">Visits</option>
+                      <option value="document">Documents</option>
+                      <option value="medication">Medications</option>
+                    </select>
+                  </div>
+                </div>
+
+                {filteredActivity.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-md p-8 text-center text-gray-500">
+                    No records found matching your criteria.
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div className="divide-y divide-gray-50">
+                      {filteredActivity.map((item) => {
+                        const Icon = item.icon;
+
+                        if (item.type === 'visit') {
+                          const enc = item.data;
+                          return (
+                            <div key={item.id} className="p-5 flex flex-col gap-3">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg ${item.bg} ${item.color}`}>
+                                    <Icon className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-gray-900">{formatDate(enc.encounter_date)}</p>
+                                    <p className="text-xs text-gray-500 font-bold uppercase">{item.type}</p>
+                                  </div>
+                                </div>
+                                <span className="text-sm font-medium text-gray-700">
+                                  {enc.Provider ? `Dr. ${enc.Provider.last_name}` : 'Unknown'}
+                                </span>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-1">Chief Complaint</p>
+                                <p className="text-sm text-gray-900 mb-2">{enc.chief_complaint || 'N/A'}</p>
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-1">Diagnosis / Impression</p>
+                                <p className="text-sm text-gray-900 font-bold">{enc.diagnosis || 'Pending results'}</p>
+                              </div>
+                              {enc.Prescriptions && enc.Prescriptions.length > 0 && (
+                                <div className="flex gap-2 flex-wrap mt-1">
+                                  {enc.Prescriptions.map((rx: any, i: number) => (
+                                    <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 text-teal-700 text-[10px] font-bold rounded-full">
+                                      <Pill className="w-3 h-3" />
+                                      {rx.medication_name}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        if (item.type === 'medication') {
+                          const rx = item.data;
+                          return (
+                            <div key={item.id} className="p-5 flex flex-col gap-3">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg ${item.bg} ${item.color}`}>
+                                    <Icon className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-gray-900">{rx.medication_name}</p>
+                                    <p className="text-xs text-gray-500 font-bold uppercase">{item.type}</p>
+                                  </div>
+                                </div>
+                                <span className="text-xs font-bold text-gray-400">
+                                  {formatDate(rx.encounter_date)}
+                                </span>
+                              </div>
+                              <div className="bg-teal-50/50 p-3 rounded-lg border border-teal-100 flex justify-between items-center">
+                                <div>
+                                  <p className="text-sm font-bold text-teal-900">{rx.dosage}</p>
+                                  <p className="text-xs text-teal-700">{rx.frequency} for {rx.duration_days} days</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-[10px] font-bold text-teal-600 uppercase">Prescriber</p>
+                                  <p className="text-xs text-teal-800 font-medium">{rx.provider ? `Dr. ${rx.provider.last_name}` : 'N/A'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (item.type === 'document') {
+                          const rec = item.data;
+                          return (
+                            <div key={item.id} className="p-5 flex flex-col gap-3">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg ${item.bg} ${item.color}`}>
+                                    <Icon className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-gray-900">{rec.document_type}</p>
+                                    <p className="text-xs text-gray-500 font-bold uppercase">{item.type}</p>
+                                  </div>
+                                </div>
+                                <span className="text-xs font-bold text-gray-400">
+                                  {formatDate(rec.created_at)}
+                                </span>
+                              </div>
+                              {rec.description && (
+                                <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-100">{rec.description}</p>
+                              )}
+                              {rec.file_url && (
+                                <div className="flex justify-end mt-1">
+                                  <a href={rec.file_url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition flex items-center gap-1">
+                                    <FileText className="w-3 h-3" /> View File
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Medical Records Tab */}
             {activeTab === "records" && (
               <div className="space-y-4">
                 {records.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow-md p-8 text-center text-gray-500">No medical records uploaded yet.</div>
+                  <div className="bg-white rounded-xl shadow-md p-8 text-center text-gray-500">No medical documents uploaded yet.</div>
                 ) : (
                   records.map((rec: any) => (
                     <div key={rec.record_id} className="bg-white rounded-xl shadow-md p-6">
@@ -138,7 +354,7 @@ export function MedicalRecords() {
                     <div 
                       key={enc.encounter_id} 
                       onClick={() => setSelectedVisit(enc)}
-                      className="bg-white rounded-xl shadow-md p-6 border-l-4 border-teal-500 cursor-pointer hover:shadow-lg transition"
+                      className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 cursor-pointer hover:shadow-lg transition"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -147,7 +363,7 @@ export function MedicalRecords() {
                             {enc.Provider ? `Dr. ${enc.Provider.last_name} — ${enc.Provider.specialty || 'General Practice'}` : 'Unknown Provider'}
                           </p>
                         </div>
-                        <div className="px-3 py-1 bg-teal-50 text-teal-700 text-xs font-bold rounded-full">Click to Expand</div>
+                        <div className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">View Summary</div>
                       </div>
                       <div className="space-y-2">
                         <div>

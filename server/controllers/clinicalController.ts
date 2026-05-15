@@ -242,7 +242,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
           attributes: ['first_name', 'last_name', 'patient_id']
         }],
         order: [['encounter_date', 'DESC']],
-        limit: 5
+        limit: 50
       }) : []
     ]);
 
@@ -255,7 +255,18 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
         count: parseInt(r.count)
       })),
       myCompletedToday,
-      recentEncounters
+      recentEncounters: (() => {
+        const unique: any[] = [];
+        const seen = new Set();
+        for (const enc of recentEncounters as any[]) {
+          if (!seen.has(enc.patient_id)) {
+            seen.add(enc.patient_id);
+            unique.push(enc);
+          }
+          if (unique.length === 5) break;
+        }
+        return unique;
+      })()
     });
   } catch (error: any) {
     console.error('Dashboard Stats Error:', error);
