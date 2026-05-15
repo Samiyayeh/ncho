@@ -27,6 +27,7 @@ export function EncounterWorkspace() {
   const [historyTab, setHistoryTab] = useState('visits');
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyData, setHistoryData] = useState({ encounters: [], records: [] });
+  const [selectedRx, setSelectedRx] = useState<any>(null);
 
   // ── Backend Draft Logic ──────────────────────────────────────────────
   const clearDraft = () => {}; // No-op now that we use backend
@@ -57,7 +58,7 @@ export function EncounterWorkspace() {
 
   // Backend Auto-Save indicator
   const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-save draft whenever form changes
   useEffect(() => {
@@ -408,7 +409,7 @@ export function EncounterWorkspace() {
                 <div className="space-y-3">
                   {prescriptions.map((rx, idx) => (
                     <div key={idx} className="grid grid-cols-12 gap-3 p-4 bg-gray-50 rounded-xl items-end border border-gray-200 shadow-sm relative">
-                      <div className="col-span-12 sm:col-span-5">
+                      <div className="col-span-12 sm:col-span-4">
                         <label className="text-[10px] font-bold uppercase text-gray-400">Medication Name</label>
                         <input 
                           value={rx.medication_name}
@@ -435,7 +436,7 @@ export function EncounterWorkspace() {
                           placeholder="3x a day"
                         />
                       </div>
-                      <div className="col-span-10 sm:col-span-1">
+                      <div className="col-span-10 sm:col-span-2">
                         <label className="text-[10px] font-bold uppercase text-gray-400">Days</label>
                         <input 
                           type="number"
@@ -602,29 +603,57 @@ export function EncounterWorkspace() {
 
                     {historyTab === 'medications' && (
                       (() => {
-                        const visitsWithRx = historyData.encounters.filter((e: any) => e.Prescriptions?.length > 0);
+                        const visitsWithRx = historyData.encounters
+                          .filter((enc: any) => enc.Prescriptions && enc.Prescriptions.length > 0)
+                          .sort((a: any, b: any) => new Date(b.encounter_date).getTime() - new Date(a.encounter_date).getTime());
+
                         return visitsWithRx.length === 0 ? (
-                          <p className="text-center text-gray-400 py-12 font-medium">No prescription history found.</p>
+                          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                            <Pill className="w-12 h-12 mb-3 opacity-20" />
+                            <p className="font-medium">No prescription history found.</p>
+                          </div>
                         ) : (
-                          visitsWithRx.map((enc: any) => (
-                            <div key={enc.encounter_id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden border-l-4 border-green-500 mb-4">
-                              <div className="bg-green-50/50 px-5 py-3 border-b border-green-100 flex justify-between items-center">
-                                <p className="text-sm font-black text-gray-900">{new Date(enc.encounter_date).toLocaleDateString()}</p>
-                                <p className="text-[10px] text-green-700 uppercase font-bold">Dr. {enc.Provider?.last_name}</p>
-                              </div>
-                              <div className="p-5 space-y-4">
-                                {enc.Prescriptions.map((rx: any, idx: number) => (
-                                  <div key={idx} className={`${idx !== 0 ? 'pt-4 border-t border-gray-100' : ''}`}>
-                                    <p className="text-base font-bold text-gray-900">{rx.medication_name}</p>
-                                    <div className="flex justify-between items-center mt-1">
-                                      <p className="text-sm text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded">{rx.dosage} • {rx.frequency} • {rx.duration_days} days</p>
-                                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PRC: {rx.prescriber_prc_number || 'N/A'}</p>
-                                    </div>
+                          <div className="space-y-6">
+                            {visitsWithRx.map((enc: any) => (
+                              <div key={enc.encounter_id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="bg-gray-50/80 px-5 py-3 border-b border-gray-100 flex justify-between items-center">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-3.5 h-3.5 text-gray-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                                      {new Date(enc.encounter_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </span>
                                   </div>
-                                ))}
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                                    Dr. {enc.Provider?.last_name || 'NCHO'}
+                                  </span>
+                                </div>
+                                <div className="divide-y divide-gray-50">
+                                  {enc.Prescriptions.map((rx: any, idx: number) => (
+                                    <div 
+                                      key={idx} 
+                                      onClick={() => setSelectedRx({
+                                        ...rx, 
+                                        encounter_date: enc.encounter_date,
+                                        provider_name: enc.Provider ? `Dr. ${enc.Provider.last_name}` : 'Unknown'
+                                      })}
+                                      className="p-4 flex items-center justify-between hover:bg-blue-50/50 cursor-pointer transition group"
+                                    >
+                                      <div>
+                                        <p className="font-bold text-gray-900 text-sm group-hover:text-blue-600 transition">{rx.medication_name}</p>
+                                        <p className="text-[11px] text-gray-500 mt-0.5">
+                                          {rx.dosage} • {rx.frequency} • {rx.duration_days} days
+                                        </p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-[10px] text-gray-400 font-mono">PRC: {rx.prescriber_prc_number || 'N/A'}</p>
+                                        <p className="text-[9px] font-bold text-gray-300 uppercase mt-0.5">Ref: {String(rx.prescription_id || '').slice(-8) || 'E-RX'}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ))
+                            ))}
+                          </div>
                         );
                       })()
                     )}
@@ -647,6 +676,69 @@ export function EncounterWorkspace() {
                   </div>
                 )}
               </div>
+              
+              {/* Prescription Detail Modal (Nested) */}
+              {selectedRx && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedRx(null)} />
+                  <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="p-6 bg-gradient-to-br from-green-500 to-teal-600 text-white relative">
+                      <Pill className="absolute -right-4 -top-4 w-24 h-24 text-white/10 rotate-12" />
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-md">
+                          <Activity className="w-6 h-6 text-white" />
+                        </div>
+                        <button onClick={() => setSelectedRx(null)} className="p-1 hover:bg-white/20 rounded-full transition">
+                          <X className="w-6 h-6 text-white" />
+                        </button>
+                      </div>
+                      <h3 className="text-2xl font-black mb-1">{selectedRx.medication_name}</h3>
+                      <p className="text-sm text-green-100 font-medium italic">Prescription Record</p>
+                    </div>
+                    <div className="p-6 space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Dosage</p>
+                          <p className="font-bold text-gray-900">{selectedRx.dosage}</p>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Duration</p>
+                          <p className="font-bold text-gray-900">{selectedRx.duration_days} Days</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
+                        <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">Frequency</p>
+                        <p className="text-lg font-black text-green-900">{selectedRx.frequency}</p>
+                      </div>
+                      <div className="pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                            DR
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Prescribing Doctor</p>
+                            <p className="font-bold text-gray-900">{selectedRx.provider_name}</p>
+                            <p className="text-[10px] text-blue-600 font-bold">PRC: {selectedRx.prescriber_prc_number || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                        <span>Ref: {selectedRx.prescription_id || 'Digital-ID'}</span>
+                        <span>Date: {new Date(selectedRx.encounter_date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 border-t flex justify-center">
+                      <button 
+                        onClick={() => setSelectedRx(null)}
+                        className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200"
+                      >
+                        Got it
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}

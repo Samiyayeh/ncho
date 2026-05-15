@@ -260,43 +260,48 @@ export function ClinicalView() {
 
             {/* Medications Tab */}
             {activeTab === "medications" && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {(() => {
-                  const visitsWithRx = encounters.filter(enc => enc.Prescriptions && enc.Prescriptions.length > 0);
+                  const allPrescriptions = encounters
+                    .flatMap(enc => (enc.Prescriptions || []).map((rx: any) => ({
+                      ...rx,
+                      encounter_date: enc.encounter_date,
+                      provider_name: enc.Provider ? `Dr. ${enc.Provider.last_name}` : 'N/A'
+                    })))
+                    .sort((a, b) => new Date(b.encounter_date).getTime() - new Date(a.encounter_date).getTime());
 
-                  if (visitsWithRx.length === 0) {
-                    return <p className="text-gray-500 text-center py-12 italic">No electronic prescriptions found.</p>;
+                  if (allPrescriptions.length === 0) {
+                    return <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 font-medium">No electronic prescriptions found.</div>;
                   }
 
-                  return visitsWithRx.map((enc: any) => (
-                    <div key={enc.encounter_id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-                      <div className="bg-gray-50 px-6 py-3 border-b flex justify-between items-center">
-                        <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Visit Date</p>
-                          <p className="font-bold text-gray-900">{formatDate(enc.encounter_date)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Provider</p>
-                          <p className="text-sm font-medium text-blue-600">
-                            {enc.Provider ? `Dr. ${enc.Provider.last_name}` : 'N/A'}
-                          </p>
-                        </div>
+                  return (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-12 px-6 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        <div className="col-span-6">Medication & Dosage</div>
+                        <div className="col-span-4">Prescriber</div>
+                        <div className="col-span-2 text-right">Date</div>
                       </div>
-                      <div className="p-6 space-y-4">
-                        {enc.Prescriptions.map((rx: any, idx: number) => (
-                          <div key={idx} className={`flex justify-between items-center ${idx !== 0 ? 'pt-4 border-t border-gray-50' : ''}`}>
-                            <div>
-                              <p className="font-bold text-gray-800">{rx.medication_name}</p>
-                              <p className="text-sm text-gray-500">{rx.dosage} • {rx.frequency}</p>
-                            </div>
-                            <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-bold">
-                              {rx.duration_days} Days
+                      {allPrescriptions.map((rx: any, idx: number) => (
+                        <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:grid sm:grid-cols-12 gap-4 items-center hover:border-blue-200 transition group">
+                          <div className="col-span-6 w-full">
+                            <p className="font-bold text-gray-900 group-hover:text-blue-600 transition">{rx.medication_name}</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              {rx.dosage} • {rx.frequency} • {rx.duration_days} days
+                            </p>
+                          </div>
+                          <div className="col-span-4 w-full">
+                            <p className="text-sm font-bold text-gray-700">{rx.provider_name}</p>
+                            <p className="text-xs text-gray-400 font-mono mt-0.5">PRC: {rx.prescriber_prc_number || 'N/A'}</p>
+                          </div>
+                          <div className="col-span-2 w-full text-right">
+                            <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-black">
+                              {formatDate(rx.encounter_date)}
                             </span>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  ));
+                  );
                 })()}
               </div>
             )}

@@ -10,6 +10,7 @@ export function MedicalRecords() {
   const [encounters, setEncounters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
+  const [selectedRx, setSelectedRx] = useState<any>(null);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -164,41 +165,127 @@ export function MedicalRecords() {
             {activeTab === "medications" && (
               <div className="space-y-6">
                 {(() => {
-                  const visitsWithRx = encounters.filter(enc => enc.Prescriptions && enc.Prescriptions.length > 0);
-                  
+                  const visitsWithRx = encounters
+                    .filter((enc: any) => enc.Prescriptions && enc.Prescriptions.length > 0)
+                    .sort((a, b) => new Date(b.encounter_date).getTime() - new Date(a.encounter_date).getTime());
+
                   if (visitsWithRx.length === 0) {
                     return <div className="bg-white rounded-xl shadow-md p-8 text-center text-gray-500">No prescriptions found.</div>;
                   }
 
-                  return visitsWithRx.map((enc: any) => (
-                    <div 
-                      key={enc.encounter_id} 
-                      onClick={() => setSelectedVisit(enc)}
-                      className="bg-white rounded-2xl shadow-md overflow-hidden border-l-4 border-blue-500 cursor-pointer hover:shadow-lg transition"
-                    >
-                      <div className="bg-blue-50/50 px-6 py-3 border-b flex justify-between items-center">
-                        <div>
-                          <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">Visit Date</p>
-                          <p className="font-bold text-gray-900">{formatDate(enc.encounter_date)}</p>
-                        </div>
-                        <div className="text-right text-xs text-blue-500 font-bold">
-                           {enc.Provider ? `Dr. ${enc.Provider.last_name}` : ''}
-                        </div>
-                      </div>
-                      <div className="p-6">
-                        <p className="text-sm text-gray-600 mb-2">Contains {enc.Prescriptions.length} medications</p>
-                        <div className="flex gap-2">
-                          {enc.Prescriptions.slice(0, 2).map((rx: any, i: number) => (
-                            <span key={i} className="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold text-gray-600">
-                              {rx.medication_name}
+                  return (
+                    <div className="space-y-4">
+                      {visitsWithRx.map((enc: any) => (
+                        <div key={enc.encounter_id} className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+                          <div className="bg-blue-50/50 px-6 py-3 border-b border-blue-100 flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-blue-400" />
+                              <span className="text-xs font-bold text-gray-700">
+                                {new Date(enc.encounter_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            </div>
+                            <span className="text-xs font-black uppercase text-blue-600">
+                              {enc.Provider ? `Dr. ${enc.Provider.last_name}` : 'NCHO'}
                             </span>
-                          ))}
-                          {enc.Prescriptions.length > 2 && <span className="text-[10px] text-gray-400">+{enc.Prescriptions.length - 2} more</span>}
+                          </div>
+                          <div className="divide-y divide-gray-50">
+                            {enc.Prescriptions.map((rx: any, idx: number) => (
+                              <div 
+                                key={idx} 
+                                onClick={() => setSelectedRx({
+                                  ...rx,
+                                  encounter_date: enc.encounter_date,
+                                  provider: enc.Provider
+                                })}
+                                className="p-5 flex items-center justify-between hover:bg-blue-50/30 cursor-pointer transition group"
+                              >
+                                <div>
+                                  <p className="font-bold text-gray-900 group-hover:text-blue-600 transition">{rx.medication_name}</p>
+                                  <p className="text-sm text-gray-500 mt-1">
+                                    {rx.dosage} • {rx.frequency} • {rx.duration_days} days
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-400 font-mono italic">PRC: {rx.prescriber_prc_number || 'N/A'}</p>
+                                  <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-400 rounded text-[9px] font-bold uppercase tracking-tighter">
+                                    Ref: {String(rx.prescription_id || '').slice(-8) || 'E-RX'}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            
+            {/* Prescription Detail Modal (Unified View) */}
+            {selectedRx && (
+              <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedRx(null)} />
+                <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-300">
+                  <div className="p-8 bg-gradient-to-br from-blue-600 to-indigo-700 text-white relative">
+                    <Pill className="absolute -right-6 -top-6 w-32 h-32 text-white/10 rotate-12" />
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                        <Activity className="w-6 h-6 text-white" />
+                      </div>
+                      <button onClick={() => setSelectedRx(null)} className="p-2 hover:bg-white/20 rounded-full transition">
+                        <X className="w-6 h-6 text-white" />
+                      </button>
+                    </div>
+                    <p className="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Electronic Prescription</p>
+                    <h3 className="text-3xl font-black">{selectedRx.medication_name}</h3>
+                  </div>
+                  
+                  <div className="p-8 space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Dosage</p>
+                        <p className="font-bold text-gray-900">{selectedRx.dosage}</p>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Duration</p>
+                        <p className="font-bold text-gray-900">{selectedRx.duration_days} Days</p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-5 bg-blue-50 rounded-2xl border border-blue-100">
+                      <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Frequency</p>
+                      <p className="text-xl font-black text-blue-900">{selectedRx.frequency}</p>
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-100">
+                      <p className="text-xs font-bold text-gray-400 uppercase mb-3">Prescribed By</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                          DR
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">{selectedRx.provider ? `Dr. ${selectedRx.provider.first_name} ${selectedRx.provider.last_name}` : 'NCHO Provider'}</p>
+                          <p className="text-[10px] text-blue-600 font-bold uppercase">PRC License: {selectedRx.prescriber_prc_number || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
-                  ));
-                })()}
+
+                    <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
+                      <span>Ref: {selectedRx.prescription_id || 'Digital-ID'}</span>
+                      <span>{new Date(selectedRx.encounter_date).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-6 bg-gray-50 border-t">
+                    <button 
+                      onClick={() => setSelectedRx(null)}
+                      className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200"
+                    >
+                      Close Card
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </>
