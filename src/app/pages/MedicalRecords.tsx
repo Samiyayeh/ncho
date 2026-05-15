@@ -84,8 +84,15 @@ export function MedicalRecords() {
 
   // Apply filters
   const filteredActivity = allActivity.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.subtitle.toLowerCase().includes(searchQuery.toLowerCase());
+    const search = searchQuery.toLowerCase();
+    const formattedDate = formatDate(item.date).toLowerCase();
+    const diagnosis = (item.data?.diagnosis || '').toLowerCase();
+
+    const matchesSearch = item.title.toLowerCase().includes(search) || 
+                          item.subtitle.toLowerCase().includes(search) ||
+                          formattedDate.includes(search) ||
+                          diagnosis.includes(search);
+                          
     const matchesType = filterType === "all" || item.type === filterType;
     return matchesSearch && matchesType;
   });

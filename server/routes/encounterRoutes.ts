@@ -15,7 +15,7 @@ router.post('/start', auditLogger('Started a new encounter'), startEncounter);
 router.post('/clinical', auditLogger('Finalized Clinical Consultation'), saveClinical);
 
 router.get('/:encounter_id', auditLogger('Accessed Encounter Data'), getEncounter);
-router.put('/:encounter_id/draft', auditLogger('Auto-saved Clinical Draft'), updateDraft);
+router.put('/:encounter_id/draft', updateDraft);
 router.delete('/:encounter_id', auditLogger('Cancelled Encounter'), cancelEncounter);
 
 

@@ -7,8 +7,7 @@ import { api } from "../api/client";
 export function PrivacyLogs() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dateFilter, setDateFilter] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "patient" | "provider">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -28,16 +27,21 @@ export function PrivacyLogs() {
     ts ? new Date(ts).toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
 
   const filteredLogs = logs.filter(log => {
-    // Date filter
-    if (dateFilter) {
-      const logDate = new Date(log.timestamp).toISOString().split('T')[0];
-      if (logDate !== dateFilter) return false;
-    }
+    // 1. Only show Provider Access logs as per user requirement
+    if (!log.Provider) return false;
 
-    // Tab filter
-    if (activeTab === "patient") return !log.Provider;
-    if (activeTab === "provider") return !!log.Provider;
-    return true;
+    // 2. Search filter
+    if (!searchQuery) return true;
+    
+    const search = searchQuery.toLowerCase();
+    const providerName = `dr. ${log.Provider.last_name}`.toLowerCase();
+    const action = (log.action_taken || '').toLowerCase();
+    const dateStr = formatTimestamp(log.timestamp).toLowerCase();
+    
+    // Check if search matches name, action, or the formatted date string
+    return providerName.includes(search) || 
+           action.includes(search) || 
+           dateStr.includes(search);
   });
 
   return (
@@ -71,50 +75,27 @@ export function PrivacyLogs() {
           </div>
         </div>
 
-        {/* Filters & Search */}
+        {/* Search Bar */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Filter by Date</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none"
-                />
-                {dateFilter && (
-                  <button 
-                    onClick={() => setDateFilter("")}
-                    className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Eye className="h-5 w-5 text-gray-400" />
             </div>
-            <div className="flex flex-col justify-end">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Log Category</label>
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'patient', label: 'Your Activity' },
-                  { id: 'provider', label: 'Provider Access' }
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex-1 py-1.5 rounded-md text-sm font-bold transition ${
-                      activeTab === tab.id 
-                        ? "bg-white text-blue-600 shadow-sm" 
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <input
+              type="text"
+              placeholder="Search by provider name, date (e.g. 'May'), or action..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-10 pr-10 py-3 border-2 border-gray-100 rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <span className="text-xs font-bold bg-gray-100 px-2 py-1 rounded">Clear</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -132,13 +113,13 @@ export function PrivacyLogs() {
           ) : filteredLogs.length === 0 ? (
             <div className="text-center py-12">
               <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No logs found matching your filters.</p>
-              {(dateFilter || activeTab !== "all") && (
+              <p className="text-gray-500">No logs found matching your search.</p>
+              {searchQuery && (
                 <button 
-                  onClick={() => { setDateFilter(""); setActiveTab("all"); }}
-                  className="mt-4 text-blue-600 font-bold hover:underline"
+                  onClick={() => setSearchQuery("")}
+                  className="mt-4 text-purple-600 font-bold hover:underline"
                 >
-                  Reset all filters
+                  Clear search query
                 </button>
               )}
             </div>

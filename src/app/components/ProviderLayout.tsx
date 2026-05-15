@@ -1,4 +1,5 @@
-import { Home, Users, UploadCloud, FileText, LogOut, Heart, Activity, PieChart } from "lucide-react";
+import { Home, Users, UploadCloud, FileText, LogOut, Heart, Activity, PieChart, X, AlertCircle } from "lucide-react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ReactNode } from "react";
 
@@ -9,6 +10,7 @@ interface ProviderLayoutProps {
 export function ProviderLayout({ children }: ProviderLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Read logged-in provider info from localStorage
   const userRaw = localStorage.getItem('ncho_user');
@@ -85,7 +87,7 @@ export function ProviderLayout({ children }: ProviderLayoutProps) {
               <p className="text-xs text-slate-400">Healthcare Provider</p>
             </div>
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition font-medium"
             >
               <LogOut className="w-5 h-5" />
@@ -99,6 +101,38 @@ export function ProviderLayout({ children }: ProviderLayoutProps) {
       <main className="flex-1 ml-64">
         {children}
       </main>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <LogOut className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Logout</h3>
+              <p className="text-gray-600 text-sm mb-6">
+                Are you sure you want to log out? Any unsaved changes in your current workspace may be lost.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-200"
+                >
+                  Yes, Log Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

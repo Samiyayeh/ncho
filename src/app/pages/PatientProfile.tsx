@@ -17,6 +17,7 @@ export function PatientProfile() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +155,7 @@ export function PatientProfile() {
 
         {/* Logout Action */}
         <button 
-          onClick={handleLogout}
+          onClick={() => setShowLogoutModal(true)}
           className="w-full flex items-center justify-center gap-2 px-6 py-4 border-2 border-red-500 text-red-600 font-bold rounded-xl hover:bg-red-50 transition shadow-sm"
         >
           <LogOut className="w-5 h-5" />
@@ -243,6 +244,38 @@ export function PatientProfile() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <LogOut className="w-10 h-10 text-red-600" />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-3">Signing Out?</h3>
+              <p className="text-gray-600 mb-8">
+                Are you sure you want to log out of your NCHO Health Passport?
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleLogout}
+                  className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition shadow-lg shadow-red-200"
+                >
+                  Yes, Log Out
+                </button>
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="w-full py-4 bg-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-200 transition"
+                >
+                  Stay Logged In
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -13,7 +13,10 @@ export const auditLogger = (actionDescription?: string) => {
     
     // Capture the response finish event to ensure the action actually completed successfully
     res.on('finish', async () => {
-      // Only log successful actions or specific clinical errors (e.g., status < 400 or specific 403s)
+      // 1. Silent skip for noisy endpoints (e.g., auto-save drafts)
+      if (req.originalUrl.endsWith('/draft')) return;
+
+      // 2. Only log successful actions or specific clinical errors
       if (res.statusCode >= 400 && res.statusCode !== 403) return;
 
       let providerId = null;

@@ -82,7 +82,7 @@ export function LandingPage() {
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Privacy First</h3>
             <p className="text-gray-600">
-              Your data is protected with bank-level encryption and complies with the Data Privacy Act.
+              Every access to your record is logged in an immutable audit trail, ensuring full compliance with the Data Privacy Act.
             </p>
           </div>
         </div>

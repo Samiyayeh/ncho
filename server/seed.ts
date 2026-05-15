@@ -270,7 +270,7 @@ async function seed() {
       } as any);
     }
 
-    // Jane Smith - File Upload Demo
+    // Jane Smith - File Upload Demo (PDF)
     const janeEnc = await Encounter.create({
       patient_id: 'NCH-2026-000002',
       provider_id: drAlice.provider_id,
@@ -286,8 +286,28 @@ async function seed() {
       provider_id: drAlice.provider_id,
       encounter_id: janeEnc.encounter_id,
       document_type: 'Laboratory Results',
-      file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', // Placeholder
+      file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', 
       description: 'Annual physical exam blood work results.'
+    });
+
+    // John Doe - File Upload Demo (Image)
+    const johnDocEnc = await Encounter.create({
+      patient_id: 'NCH-2026-000001',
+      provider_id: drAlice.provider_id,
+      encounter_date: new Date(Date.now() - 3600000 * 24 * 2), // 2 days ago
+      status: 'COMPLETED',
+      encounter_type: 'FILE_UPLOAD',
+      diagnosis: 'Imaging: Chest X-Ray',
+      chief_complaint: 'Routine Thoracic Scan'
+    } as any);
+
+    await MedicalRecord.create({
+      patient_id: 'NCH-2026-000001',
+      provider_id: drAlice.provider_id,
+      encounter_id: johnDocEnc.encounter_id,
+      document_type: 'X-Ray Image',
+      file_url: 'https://images.unsplash.com/photo-1530210124550-912dc1381cb8?auto=format&fit=crop&q=80&w=1000', 
+      description: 'Clear lungs, no abnormalities observed.'
     });
 
     // 6. Seed Audit Logs for privacy demo
