@@ -37,7 +37,7 @@ PORT=5000
 #### Frontend (.env)
 Create a `.env` file in the **root** directory:
 ```env
-# Use localhost or your local IP (to allow mobile testing)
+# Use your local IP (e.g., 192.168.x.x) to allow mobile devices to connect
 VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
@@ -56,7 +56,7 @@ npm run dev
 #### Terminal 2: Frontend
 ```cmd
 npm install
-npm run dev
+npm run dev -- --host
 ```
 
 The system will be accessible at:
