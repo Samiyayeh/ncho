@@ -127,7 +127,7 @@ export function ProviderDashboard() {
         {/* ── Page Header ─────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Health Care Provider Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">HealthCare Provider Dashboard</h1>
             <p className="text-gray-500 text-sm mt-1">
               Welcome back, {providerName}. Here is your clinical overview for today.
             </p>

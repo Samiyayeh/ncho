@@ -252,4 +252,119 @@ erDiagram
     PATIENTS ||--o{ QR_ACCESS_TOKENS : "holds"
     PATIENTS ||--o{ AUDIT_LOGS : "subject of"
     PROVIDERS ||--o{ AUDIT_LOGS : "actor in"
-```
+```
+
+---
+
+## 🏗️ System Logical Architecture
+
+### NCHO Full-Stack Logical Flowchart
+
+The following diagram maps the end-to-end data flow between the React frontend, Express controllers, and the MySQL database, including the automated Data Privacy Act (DPA) logging triggers.
+
+```mermaid
+flowchart TD
+    Start([User Opens App]) --> Landing[Landing Page]
+    Landing --> AuthCheck{Auth Token Exists?}
+
+    %% AUTHENTICATION LAYER
+    AuthCheck -- No --> Login[Login Page]
+    Login --> Submit[Submit Credentials]
+    Submit --> B_Auth[Backend: authController]
+    B_Auth --> B_Bcrypt{Verify Hash}
+    B_Bcrypt -- Fail --> LoginErr[Display Auth Error]
+    B_Bcrypt -- Success --> B_JWT[Generate JWT + Role]
+    B_JWT --> StoreToken[Frontend: Store Token & User State]
+
+    %% ROLE ROUTING
+    StoreToken --> RoleCheck{User Role?}
+    AuthCheck -- Yes --> RoleCheck
+
+    %% PATIENT PORTAL LOGIC
+    RoleCheck -- Patient --> PDash[Patient Passport]
+    subgraph "Patient Journey (Frontend & Backend)"
+        PDash --> P_QR[Frontend: Generate QR Code from ID]
+        PDash --> P_FetchRecords[API: GET /patient/records]
+        P_FetchRecords --> B_Rec[Backend: patientController]
+        B_Rec --> DB_Rec[(DB: Records & Encounters)]
+        DB_Rec -- JSON --> P_Render[Frontend: Render History & Vitals]
+        
+        P_Render --> P_Search[Frontend: Multi-field Search/Filter]
+        P_Render --> P_Modal[Frontend: Selected Detail Modal]
+        P_Modal -- Type: File --> P_DocView[Frontend: In-App Document Viewer]
+        
+        PDash --> P_Logs[API: GET /privacy-logs]
+        P_Logs --> B_Logs[Backend: Filter Logs by PatientID]
+        B_Logs --> L_Scrub[Logic: Scrub IP Addresses]
+        L_Scrub --> P_LogsRender[Frontend: Render Transparent Audit Feed]
+    end
+
+    %% PROVIDER PORTAL LOGIC
+    RoleCheck -- Provider --> DrDash[Provider Dashboard]
+    subgraph "Provider Journey (Frontend & Backend)"
+        DrDash --> Dr_Stats[API: GET /dashboard/stats]
+        Dr_Stats --> B_Stats[Backend: clinicalController]
+        B_Stats --> B_Dedup[Logic: Deduplicate Last 5 Unique Patients]
+        B_Stats --> B_KPI[Logic: Aggregate Daily Performance]
+        
+        DrDash --> Dr_Lookup[Frontend: Patient Lookup]
+        Dr_Lookup --> Dr_Hub[Patient Record View / Clinical Hub]
+        
+        subgraph "Encounter Workflow"
+            Dr_Hub --> Enc_Start[API: POST /encounters/start]
+            Enc_Start --> B_Draft[Backend: Create/Resume IN_PROGRESS]
+            B_Draft --> Enc_Work[Encounter Workspace]
+            
+            Enc_Work --> Enc_Drafting[Frontend: Sync State to LocalStorage]
+            Enc_Drafting --> Enc_Save[API: PATCH /update-draft]
+            
+            Enc_Work --> Enc_Final[API: POST /finalize]
+            Enc_Final --> B_Transac[Backend: MySQL Transaction]
+            subgraph "Backend Transaction"
+                B_Transac --> B_EncSave[Save Encounter Data]
+                B_Transac --> B_Meds[Map & Bulk-Save Prescriptions]
+                B_Transac --> B_Status[Update Status: COMPLETED]
+            end
+            B_Transac --> B_Audit[Trigger: AuditLog.create]
+        end
+        
+        Dr_Hub --> Dr_Upload[API: POST /upload-record]
+        Dr_Upload --> B_Multer[Backend: Multer File Handling]
+        B_Multer --> B_RecLink[Backend: Link Record to Shadow Encounter]
+    end
+
+    %% DPA COMPLIANCE (CROSS-SYSTEM)
+    B_Audit --> DB_Logs[(DB: AUDIT_LOGS)]
+    B_RecLink --> B_Audit
+    B_Auth --> B_Audit
+
+    %% EXIT
+    DrDash --> Logout[Logout]
+    PDash --> Logout
+    Logout --> ClearCache[Clear Token & State]
+    ClearCache --> Start
+
+    %% STYLING
+    style B_Transac fill:#e1f5fe,stroke:#01579b
+    style B_Audit fill:#fff3e0,stroke:#e65100
+    style RoleCheck fill:#f3e5f5,stroke:#4a148c
+    style DB_Rec fill:#e8f5e9,stroke:#1b5e20
+    style DB_Logs fill:#e8f5e9,stroke:#1b5e20
+```
+
+### 🛠️ Detailed Breakdown of Logical Sides
+
+#### 1. Frontend Logic (React)
+*   **Role-Based Routing**: Uses the JWT payload to protect routes, ensuring Patients cannot access Provider endpoints.
+*   **Stateful Filtering**: The `ClinicalView` search bar uses a complex `filter()` chain that parses dates and matches keywords across five different data fields (Diagnosis, Complaint, Date, Provider, Medications).
+*   **Dynamic UI Deduplication**: The Provider Dashboard ensures the "Recent Patients" list only displays the single most recent unique visit per patient ID, even if the backend returns raw encounter logs.
+
+#### 2. Backend Logic (Express + Sequelize)
+*   **Transaction Integrity**: The `saveClinical` controller uses a SQL Transaction. If any part of the encounter or prescription saving fails, the entire record is rolled back to maintain medical data integrity.
+*   **Shadow Encounters**: Medical record uploads programmatically create a companion `FILE_UPLOAD` encounter. This ensures file activity is seamlessly integrated into the clinical timeline and caught by audit triggers.
+*   **Middleware Guards**: Every API call (except login) passes through `authMiddleware` which verifies the JWT and attaches the actor's ID to the request for logging.
+
+#### 3. Security & DPA Logic
+*   **Automatic Audit Triggers**: Accessing patient records or finalizing consultations triggers an `AuditLog.create()` call before the final server response is sent.
+*   **Technical Privacy**: The Privacy Logs controller specifically scrubs `ip_address` data from responses on the patient-facing portal to protect backend metadata while maintaining transparency.
+
