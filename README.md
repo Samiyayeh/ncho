@@ -20,40 +20,57 @@ Ensure you have **MySQL** installed and running.
     mysql -u root -p ncho_patient_link < schema.sql
     ```
 
-### 2. Backend Setup
-1.  **Navigate to server:** `cd server`
-2.  **Install dependencies:** `npm install`
-3.  **Configure `.env`:**
-    Create a `.env` file in the `server` directory:
-    ```env
-    DB_HOST=localhost
-    DB_USER=root
-    DB_PASSWORD=your_password
-    DB_NAME=ncho_patient_link
-    PORT=5000
-    ```
-4.  **Configure `.env.test`:**
-    Create a `.env.test` file (for safe testing):
-    ```env
-    DB_HOST=localhost
-    DB_USER=root
-    DB_PASSWORD=your_password
-    DB_NAME=ncho_test
-    PORT=5001
-    ```
+### 2. Environment Setup
 
-### 3. Seeding the Database
-To populate the system with test data:
-*   **Basic Seed:** `npm run seed` (Wipes `ncho_patient_link`, creates base providers/patients)
-*   **Basic Test Seed:** `npm run seed:test` (Wipes `ncho_test`)
-*   **Dashboard Seed:** `npm run seed:dashboard` (Generates 100+ realistic encounters specifically for dashboard testing)
-*   **Dashboard Test Seed:** `npm run seed:dashboard:test` (Targets `ncho_test` with realistic data)
-*   **Analytics Seed:** `npm run seed:analytics` (Legacy: Generates 150+ patients/encounters)
+The system requires environment variables for both the backend and frontend.
 
-### 4. Frontend Setup
-1.  **Navigate to root:** `cd ..`
-2.  **Install dependencies:** `npm install`
-3.  **Start Frontend:** `npm run dev`
+#### Backend (.env)
+Create a `.env` file in the `server` directory:
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=ncho_patient_link
+PORT=5000
+```
+
+#### Frontend (.env)
+Create a `.env` file in the **root** directory:
+```env
+# Use localhost or your local IP (to allow mobile testing)
+VITE_API_BASE_URL=http://localhost:5000/api
+```
+
+### 3. Hosting Locally (CMD)
+
+To run the full system, you need to start both the backend and the frontend in separate terminal windows.
+
+#### Terminal 1: Backend
+```cmd
+cd server
+npm install
+npm run seed  # Optional: Seed the database
+npm run dev
+```
+
+#### Terminal 2: Frontend
+```cmd
+npm install
+npm run dev
+```
+
+The system will be accessible at:
+- **Frontend**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:5000/api](http://localhost:5000/api)
+- **Database Seeding**: See below for options.
+
+### 4. Seeding the Database
+
+To populate the system with test data, run these commands from the `server` directory:
+
+*   **Basic Seed**: `npm run seed` (Resets DB, creates base accounts)
+*   **Dashboard Seed**: `npm run seed:dashboard` (Generates 100+ realistic encounters)
+*   **Test Environment Seed**: `npm run seed:test` (Wipes the test database)
 
 ---
 
