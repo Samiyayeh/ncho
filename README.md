@@ -367,4 +367,77 @@ flowchart TD
 #### 3. Security & DPA Logic
 *   **Automatic Audit Triggers**: Accessing patient records or finalizing consultations triggers an `AuditLog.create()` call before the final server response is sent.
 *   **Technical Privacy**: The Privacy Logs controller specifically scrubs `ip_address` data from responses on the patient-facing portal to protect backend metadata while maintaining transparency.
+
+---
+
+### 🎨 NCHO Frontend User Interface Flow
+
+The following diagram focuses strictly on the User Experience (UX), navigation paths, and frontend screen transitions.
+
+```mermaid
+flowchart TD
+    %% Global Entry
+    Start([Launch App]) --> Landing[Landing Page]
+    Landing --> Login{Login Screen}
+
+    %% Provider Journey
+    subgraph "Provider Interface"
+        Login -- "As Provider" --> DrDash[HealthCare Dashboard]
+        
+        %% Dashboard Features
+        DrDash --> DrStats[View Today's Patient Count]
+        DrDash --> DrRecent[Browse Recent Patients List]
+        DrDash --> DrAudit[Monitor Personal DPA Feed]
+        
+        %% Core Navigation
+        DrDash -- "Search / Browse" --> DrDir[Patient Directory]
+        DrDir -- "Select Patient" --> DrHub[Patient Record View]
+        
+        subgraph "Clinical Interface"
+            DrHub -- "Tabs" --> DrTabs[Summary / History / Meds / Records]
+            DrTabs -- "Search" --> DrSearch[Instant Keyword Filter]
+            DrTabs -- "Record Detail" --> DrFile[Document Popup Viewer]
+            
+            DrHub -- "Action" --> DrEncounter[Encounter Workspace]
+            DrEncounter --> DrForm[Vitals & Assessment Forms]
+            DrForm -- "Review" --> DrSummary[Summary Confirmation Modal]
+            DrSummary -- "Confirm" --> DrSuccess[Success Banner]
+            
+            DrHub -- "Action" --> DrUpload[Upload Record Form]
+        end
+    end
+
+    %% Patient Journey
+    subgraph "Patient Interface"
+        Login -- "As Patient" --> PDash[Patient Passport]
+        
+        %% Passport Features
+        PDash --> P_QR[Enlarge QR Code]
+        PDash --> P_Profile[View Profile Details]
+        
+        %% Navigation
+        PDash -- "Nav" --> PMeds[Medications Tab]
+        PMeds -- "Detail" --> PMedModal[Prescription Info Modal]
+        
+        PDash -- "Nav" --> PRecs[Medical Records Tab]
+        PRecs -- "Detail" --> PRecModal[Visit Summary Modal]
+        
+        PDash -- "Nav" --> PPrivacy[Privacy Logs Tab]
+        PPrivacy -- "Filter" --> PFilter[Toggle Activity Categories]
+        
+        PDash -- "Profile Icon" --> PSecurity[Security & Settings]
+        PSecurity -- "Form" --> PPass[Change Password Modal]
+    end
+
+    %% Exit
+    DrDash -- "Logout" --> Login
+    PDash -- "Logout" --> Login
+
+    %% Visual Styling
+    style DrHub fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style PDash fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style DrEncounter fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+    style DrFile fill:#fff3e0,stroke:#f57c00
+```
+
 
