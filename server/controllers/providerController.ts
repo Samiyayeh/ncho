@@ -10,6 +10,8 @@ import { AuditLog } from '../models/AuditLog';
 import { QrAccessToken } from '../models/QrAccessToken';
 import sequelize from '../config/db';
 import { Op } from 'sequelize';
+import bcrypt from 'bcrypt';
+
 
 export const scanQr = async (req: AuthRequest, res: Response) => {
   try {
@@ -323,5 +325,62 @@ export const viewIdImage = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+export const getProviderProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const providerId = req.user?.id;
+    if (!providerId) return res.status(400).json({ error: 'Provider ID missing from token' });
+
+    const provider = await Provider.findByPk(providerId, {
+      include: [{ model: Account, as: 'Account', attributes: ['email'] }]
+    });
+
+    if (!provider) return res.status(404).json({ error: 'Provider not found.' });
+
+    const providerData = provider.toJSON();
+    providerData.email = providerData.Account?.email || null;
+    delete providerData.Account;
+
+    res.status(200).json(providerData);
+  } catch (error) {
+    console.error('Error fetching provider profile:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+export const changeProviderPassword = async (req: AuthRequest, res: Response) => {
+  try {
+    const providerId = req.user?.id;
+    if (!providerId) return res.status(403).json({ error: 'Unauthorized' });
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+    }
+
+    const provider = await Provider.findByPk(providerId, {
+      include: [{ model: Account, as: 'Account' }]
+    });
+    if (!provider || !provider.Account) return res.status(404).json({ error: 'Provider not found.' });
+
+    const isMatch = await bcrypt.compare(currentPassword, provider.Account.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Incorrect current password.' });
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await provider.Account.update({ password_hash: newPasswordHash });
+
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('Error changing provider password:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
 
 

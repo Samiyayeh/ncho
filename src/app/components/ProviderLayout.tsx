@@ -1,4 +1,4 @@
-import { Home, Users, UploadCloud, FileText, LogOut, Heart, Activity, PieChart, X, AlertCircle } from "lucide-react";
+import { Home, Users, UploadCloud, FileText, LogOut, Heart, Activity, PieChart, X, AlertCircle, User } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ReactNode } from "react";
@@ -82,10 +82,10 @@ export function ProviderLayout({ children }: ProviderLayoutProps) {
         {/* User Profile & Logout */}
         <div className="p-4 border-t border-slate-700">
           <div className="flex flex-col gap-3">
-            <div className="px-2">
-              <p className="text-sm font-bold text-white">{providerName}</p>
+            <Link to="/provider/profile" className="px-2 block hover:opacity-80 transition group">
+              <p className="text-sm font-bold text-white group-hover:text-blue-400 transition">{providerName}</p>
               <p className="text-xs text-slate-400">Healthcare Provider</p>
-            </div>
+            </Link>
             <button
               onClick={() => setShowLogoutConfirm(true)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition font-medium"

@@ -13,6 +13,7 @@ import { PrivacyLogs } from "./pages/PrivacyLogs";
 import { MedicalRecordUpload } from "./pages/MedicalRecordUpload";
 import { AdminAuditLogs } from "./pages/AdminAuditLogs";
 import { EncounterWorkspace } from "./pages/EncounterWorkspace";
+import { ProviderProfile } from "./pages/ProviderProfile";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PublicRoute } from "./components/PublicRoute";
 
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: "/provider/itr", Component: DigitalITR },
       { path: "/provider/upload/:patientId", Component: MedicalRecordUpload },
       { path: "/admin/audit-logs", Component: AdminAuditLogs },
+      { path: "/provider/profile", Component: ProviderProfile },
     ]
   }
 ]);

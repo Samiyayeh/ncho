@@ -8,7 +8,9 @@ import {
   getPatientEncounters,
   getAdminAuditLogs,
   scanQr,
-  patientLookup
+  patientLookup,
+  getProviderProfile,
+  changeProviderPassword
 } from '../controllers/providerController';
 import { authenticateToken } from '../middlewares/authMiddleware';
 import { auditLogger } from '../middlewares/auditLogger';
@@ -47,5 +49,10 @@ router.post('/scan-qr', auditLogger('Verified Patient Identity via QR Scan'), sc
 // GET patient lookup
 router.get('/patient-lookup', auditLogger('Accessed Patient Record via Lookup/Quick Access'), patientLookup);
 
+// GET provider profile
+router.get('/profile', auditLogger('Viewed own provider profile'), getProviderProfile);
+
+// POST provider password change
+router.post('/password', auditLogger('Changed provider account password'), changeProviderPassword);
 
 export default router;
