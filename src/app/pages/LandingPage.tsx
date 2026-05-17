@@ -2,6 +2,21 @@ import { Heart, Shield, QrCode, FileText, Users, Activity, Lock, FolderOpen, Use
 import { Link } from "react-router";
 
 export function LandingPage() {
+  const token = localStorage.getItem("ncho_token");
+  const userRaw = localStorage.getItem("ncho_user");
+  
+  let loggedInRole: "patient" | "provider" | "admin" | null = null;
+  if (token && userRaw) {
+    try {
+      const user = JSON.parse(userRaw);
+      if (user.role === "patient" || user.role === "provider" || user.role === "admin") {
+        loggedInRole = user.role;
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
       {/* Header */}
@@ -15,19 +30,37 @@ export function LandingPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link
-              to="/login?role=provider"
-              className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-blue-600 transition"
-            >
-              <Users className="w-4 h-4" />
-              Healthcare Provider Portal
-            </Link>
-            <Link
-              to="/login?role=patient"
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition font-bold"
-            >
-              Patient Login
-            </Link>
+            {loggedInRole === "patient" ? (
+              <Link
+                to="/patient"
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition font-bold text-sm"
+              >
+                Go to Patient Portal
+              </Link>
+            ) : loggedInRole === "provider" || loggedInRole === "admin" ? (
+              <Link
+                to="/provider/dashboard"
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition font-bold text-sm"
+              >
+                Go to Provider Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login?role=provider"
+                  className="hidden md:flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-blue-600 transition"
+                >
+                  <Users className="w-4 h-4" />
+                  Healthcare Provider Portal
+                </Link>
+                <Link
+                  to="/login?role=patient"
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg hover:opacity-90 transition font-bold"
+                >
+                  Patient Login
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -44,12 +77,28 @@ export function LandingPage() {
           Say goodbye to heavy paper folders and lost medical records. Access your complete health history anytime, anywhere with a simple QR code.
         </p>
         <div className="flex justify-center">
-          <Link
-            to="/login?role=patient"
-            className="inline-block px-10 py-4 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg text-lg hover:opacity-90 transition font-bold shadow-lg shadow-blue-200"
-          >
-            Access My Records
-          </Link>
+          {loggedInRole === "patient" ? (
+            <Link
+              to="/patient"
+              className="inline-block px-10 py-4 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg text-lg hover:opacity-90 transition font-bold shadow-lg shadow-blue-200"
+            >
+              Go to My Patient Dashboard
+            </Link>
+          ) : loggedInRole === "provider" || loggedInRole === "admin" ? (
+            <Link
+              to="/provider/dashboard"
+              className="inline-block px-10 py-4 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg text-lg hover:opacity-90 transition font-bold shadow-lg shadow-blue-200"
+            >
+              Go to My Provider Dashboard
+            </Link>
+          ) : (
+            <Link
+              to="/login?role=patient"
+              className="inline-block px-10 py-4 bg-gradient-to-r from-blue-600 to-teal-500 text-white rounded-lg text-lg hover:opacity-90 transition font-bold shadow-lg shadow-blue-200"
+            >
+              Access My Records
+            </Link>
+          )}
         </div>
       </section>
 

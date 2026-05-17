@@ -5,25 +5,25 @@ export function PublicRoute() {
   const userRaw = localStorage.getItem('ncho_user');
   const location = useLocation();
   
-  // If there's a 'role' parameter in the URL, the user is explicitly trying 
-  // to reach a specific login/register state. Allow them to see the page
-  // so they can switch accounts or roles.
-  const searchParams = new URLSearchParams(location.search);
-  if (searchParams.has('role')) {
-    return <Outlet />;
-  }
-
   if (token && userRaw) {
     try {
       const user = JSON.parse(userRaw);
-      if (user.role === 'patient') {
-        return <Navigate to="/patient" replace />;
-      } else if (user.role === 'provider' || user.role === 'admin') {
-        return <Navigate to="/provider/dashboard" replace />;
+      const searchParams = new URLSearchParams(location.search);
+      const requestedRole = searchParams.get('role');
+
+      // If the user is logged in and either:
+      // 1. There is no role specified in the URL query, OR
+      // 2. The requested role in the URL matches the user's current active session role,
+      // Then bypass the login page and redirect them straight to their dashboard!
+      if (!requestedRole || requestedRole === user.role) {
+        if (user.role === 'patient') {
+          return <Navigate to="/patient" replace />;
+        } else if (user.role === 'provider' || user.role === 'admin') {
+          return <Navigate to="/provider/dashboard" replace />;
+        }
       }
     } catch (e) {
-      // If parsing fails, treat as not logged in
-      return <Outlet />;
+      // If parsing fails, proceed to login page
     }
   }
 
