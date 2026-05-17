@@ -13,7 +13,9 @@
     "seed:test": "cross-env NODE_ENV=test ts-node seed.ts",
     "seed:analytics:test": "cross-env NODE_ENV=test ts-node seed-analytics.ts",
     "seed:dashboard:test": "cross-env NODE_ENV=test ts-node seed-dashboard.ts",
-    "dev:test": "cross-env NODE_ENV=test nodemon server.ts"
+    "dev:test": "cross-env NODE_ENV=test nodemon server.ts",
+    "cleanup": "ts-node cleanup.ts",
+    "cleanup:test": "cross-env NODE_ENV=test ts-node cleanup.ts"
   },
   "keywords": [],
   "author": "",

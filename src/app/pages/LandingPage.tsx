@@ -1,4 +1,4 @@
-import { Heart, Shield, QrCode, FileText, Users, Activity, Lock, Clock, FolderOpen, UserCheck } from "lucide-react";
+import { Heart, Shield, QrCode, FileText, Users, Activity, Lock, FolderOpen, UserCheck } from "lucide-react";
 import { Link } from "react-router";
 
 export function LandingPage() {
@@ -93,7 +93,7 @@ export function LandingPage() {
         <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
           Why NCHO Patient-Link?
         </h2>
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           <div className="bg-white rounded-xl shadow-md p-8">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -103,20 +103,6 @@ export function LandingPage() {
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Data Privacy Compliant</h3>
                 <p className="text-gray-600">
                   Fully compliant with the Philippine Data Privacy Act. All access is logged and audited for your protection.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-8">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-teal-500" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Faster Care</h3>
-                <p className="text-gray-600">
-                  Doctors can access your complete medical history instantly, leading to faster diagnosis and better treatment decisions.
                 </p>
               </div>
             </div>

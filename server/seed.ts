@@ -7,6 +7,58 @@ import { Prescription } from './models/Prescription';
 import { MedicalRecord } from './models/MedicalRecord';
 import { AuditLog } from './models/AuditLog';
 import bcrypt from 'bcrypt';
+import fs from 'fs';
+import path from 'path';
+import http from 'http';
+import https from 'https';
+
+const downloadFile = (url: string, dest: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const dir = path.dirname(dest);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    const file = fs.createWriteStream(dest);
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    };
+
+    const client = url.startsWith('https') ? https : http;
+
+    client.get(url, options, (response) => {
+      // Handle redirect
+      if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        const redirectUrl = response.headers.location.startsWith('http')
+          ? response.headers.location
+          : new URL(response.headers.location, url).toString();
+        
+        file.close();
+        fs.unlink(dest, () => {
+          downloadFile(redirectUrl, dest).then(resolve).catch(reject);
+        });
+        return;
+      }
+      if (response.statusCode !== 200) {
+        file.close();
+        fs.unlink(dest, () => {});
+        reject(new Error(`Failed to download ${url}: ${response.statusCode}`));
+        return;
+      }
+      response.pipe(file);
+      file.on('finish', () => {
+        file.close();
+        resolve();
+      });
+    }).on('error', (err) => {
+      file.close();
+      fs.unlink(dest, () => {});
+      reject(err);
+    });
+  });
+};
 
 const randomItem = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
@@ -270,25 +322,19 @@ async function seed() {
       } as any);
     }
 
-    // Jane Smith - File Upload Demo (PDF)
-    const janeEnc = await Encounter.create({
-      patient_id: 'NCH-2026-000002',
-      provider_id: drAlice.provider_id,
-      encounter_date: new Date(),
-      status: 'COMPLETED',
-      encounter_type: 'FILE_UPLOAD',
-      diagnosis: 'Uploaded: Laboratory Results',
-      chief_complaint: 'Blood Test Results'
-    } as any);
+    // Download sample files locally to uploads/ for offline clinical demonstration
+    console.log('⌛ Downloading realistic clinical files to local uploads folder...');
+    const localJpgPath = path.join(__dirname, 'uploads', 'sample-xray.jpg');
 
-    await MedicalRecord.create({
-      patient_id: 'NCH-2026-000002',
-      provider_id: drAlice.provider_id,
-      encounter_id: janeEnc.encounter_id,
-      document_type: 'Laboratory Results',
-      file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', 
-      description: 'Annual physical exam blood work results.'
-    });
+    let johnFileUrl = 'https://knect365.imgix.net/uploads/bd64cf28-498e-44df-be77-3e74cd079783-featured-49f3a3c3ecd5bdb5a10037c1b80de2ff.jpg?auto=format&fit=max&w=1920&dpr=1';
+
+    try {
+      await downloadFile(johnFileUrl, localJpgPath);
+      console.log('✅ Downloaded local sample-xray.jpg');
+      johnFileUrl = '/uploads/sample-xray.jpg';
+    } catch (e) {
+      console.warn('⚠️ Could not download X-Ray, falling back to external link:', e);
+    }
 
     // John Doe - File Upload Demo (Image)
     const johnDocEnc = await Encounter.create({
@@ -306,8 +352,8 @@ async function seed() {
       provider_id: drAlice.provider_id,
       encounter_id: johnDocEnc.encounter_id,
       document_type: 'X-Ray Image',
-      file_url: 'https://images.unsplash.com/photo-1530210124550-912dc1381cb8?auto=format&fit=crop&q=80&w=1000', 
-      description: 'Clear lungs, no abnormalities observed.'
+      file_url: johnFileUrl, 
+      description: 'Standard Posteroanterior (PA) view chest radiograph. Clear lung fields, normal cardiothoracic ratio.'
     });
 
     // 6. Seed Audit Logs for privacy demo
