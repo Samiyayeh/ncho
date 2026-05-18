@@ -284,9 +284,13 @@ export function ClinicalView() {
                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Chief Complaint</p>
                                   <p className="text-sm text-gray-900 font-medium">"{enc.chief_complaint || 'N/A'}"</p>
                                 </div>
-                                <div className="bg-yellow-50 p-2 rounded border border-yellow-100">
+                                <div className="mb-3 bg-yellow-50 p-2 rounded border border-yellow-100">
                                   <p className="text-[10px] font-bold text-yellow-600 uppercase tracking-widest mb-0.5">Diagnosis / Impression</p>
                                   <p className="text-sm font-bold text-gray-900">{enc.diagnosis || 'Pending Results'}</p>
+                                </div>
+                                <div className="bg-green-50 p-2 rounded border border-green-100">
+                                  <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-0.5">Treatment Plan</p>
+                                  <p className="text-sm font-bold text-gray-900">{enc.treatment_plan || 'No plan specified'}</p>
                                 </div>
                                 {enc.encounter_type === 'FILE_UPLOAD' && (() => {
                                   const linkedRecord = records.find(r => r.encounter_id === enc.encounter_id);
@@ -367,6 +371,7 @@ export function ClinicalView() {
                       <div className="grid md:grid-cols-2 gap-2 text-sm">
                         <p className="text-gray-600"><span className="font-bold">Chief Complaint:</span> {enc.chief_complaint || 'N/A'}</p>
                         <p className="text-gray-600"><span className="font-bold">Diagnosis:</span> {enc.diagnosis || 'N/A'}</p>
+                        <p className="text-gray-600 md:col-span-2"><span className="font-bold">Treatment Plan:</span> {enc.treatment_plan || 'No plan specified'}</p>
                         {enc.blood_pressure && <p className="text-gray-600"><span className="font-bold">BP:</span> {enc.blood_pressure}</p>}
                         {enc.heart_rate && <p className="text-gray-600"><span className="font-bold">Heart Rate:</span> {enc.heart_rate} bpm</p>}
                         {enc.temperature && <p className="text-gray-600"><span className="font-bold">Temp:</span> {enc.temperature}°C</p>}

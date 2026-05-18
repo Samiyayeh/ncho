@@ -175,7 +175,9 @@ export function PatientPassport() {
                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Chief Complaint</p>
                         <p className="text-sm text-gray-900 mb-2">{enc.chief_complaint || 'N/A'}</p>
                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Diagnosis / Impression</p>
-                        <p className="text-sm text-gray-900 font-bold">{enc.diagnosis || 'Pending results'}</p>
+                        <p className="text-sm text-gray-900 font-bold mb-2">{enc.diagnosis || 'Pending results'}</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase mb-1">Treatment Plan</p>
+                        <p className="text-sm text-gray-900">{enc.treatment_plan || 'No plan specified'}</p>
                       </div>
                     </div>
                   );
