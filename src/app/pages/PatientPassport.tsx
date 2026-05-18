@@ -36,7 +36,26 @@ export function PatientPassport() {
   }, []);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">Loading passport...</div>;
-  if (!patient) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">Failed to load passport. Please log in again.</div>;
+  if (!patient) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white p-8 rounded-2xl shadow-md max-w-sm w-full text-center">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Session Expired</h2>
+          <p className="text-gray-500 mb-6">Failed to load passport. Please log in again.</p>
+          <button 
+            onClick={() => {
+              localStorage.removeItem('ncho_token');
+              localStorage.removeItem('ncho_user');
+              navigate('/login');
+            }}
+            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition"
+          >
+            Return to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const formatDate = (dateStr: string) =>
     dateStr ? new Date(dateStr).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';

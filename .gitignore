@@ -33,5 +33,4 @@ dist-ssr
 server/uploads/*
 !server/uploads/.gitkeep
 server/scratch/
-lowfi_design/
 fullSystembackground/

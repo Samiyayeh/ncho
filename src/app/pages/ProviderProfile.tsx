@@ -47,8 +47,20 @@ export function ProviderProfile() {
   if (!provider) {
     return (
       <ProviderLayout>
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-red-600 font-bold">
-          Failed to load profile.
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 max-w-sm w-full text-center">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogOut className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-xl font-black text-slate-900 tracking-tight mb-2">Session Expired</h2>
+            <p className="text-slate-500 mb-6 font-medium text-sm">We couldn't load your profile. Your session may have expired.</p>
+            <button 
+              onClick={handleLogout}
+              className="w-full bg-blue-600 text-white font-bold py-3.5 px-4 rounded-2xl hover:bg-blue-700 transition"
+            >
+              Return to Login
+            </button>
+          </div>
         </div>
       </ProviderLayout>
     );

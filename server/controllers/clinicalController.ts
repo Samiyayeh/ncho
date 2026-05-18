@@ -280,7 +280,11 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
  */
 export const getDpaFeed = async (req: AuthRequest, res: Response) => {
   try {
+    const provider_id = req.user?.id;
+    const whereClause = provider_id ? { provider_id } : {};
+
     const logs = await AuditLog.findAll({
+      where: whereClause,
       include: [
         { model: Provider, as: 'Provider', attributes: ['first_name', 'last_name'] },
         { model: Patient, as: 'Patient', attributes: ['first_name', 'last_name', 'patient_id'] }

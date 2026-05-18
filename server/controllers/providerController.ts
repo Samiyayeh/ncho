@@ -93,9 +93,31 @@ export const patientLookup = async (req: AuthRequest, res: Response) => {
 
 export const getPatientDirectory = async (req: AuthRequest, res: Response) => {
   try {
-    const patients = await Patient.findAll({
-      include: [{ model: Account, as: 'Account', attributes: ['email'] }]
+    const { search, page, limit } = req.query;
+    
+    // Pagination defaults
+    const limitNum = limit ? parseInt(limit as string, 10) : 5;
+    const pageNum = page ? parseInt(page as string, 10) : 1;
+    const offset = (pageNum - 1) * limitNum;
+
+    const whereClause: any = {};
+    
+    if (search && typeof search === 'string' && search.trim() !== '') {
+      whereClause[Op.or] = [
+        { first_name: { [Op.like]: `%${search}%` } },
+        { last_name: { [Op.like]: `%${search}%` } },
+        { patient_id: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const { count, rows: patients } = await Patient.findAndCountAll({
+      where: whereClause,
+      include: [{ model: Account, as: 'Account', attributes: ['email'] }],
+      limit: limitNum,
+      offset,
+      order: [['created_at', 'DESC']]
     });
+
     // Flatten email into each patient object for frontend compatibility
     const result = patients.map(p => {
       const data = p.toJSON();
@@ -103,7 +125,13 @@ export const getPatientDirectory = async (req: AuthRequest, res: Response) => {
       delete data.Account;
       return data;
     });
-    res.status(200).json(result);
+
+    res.status(200).json({
+      data: result,
+      total: count,
+      page: pageNum,
+      totalPages: Math.ceil(count / limitNum)
+    });
   } catch (error) {
     console.error('Error fetching directory:', error);
     res.status(500).json({ error: 'Internal server error.' });

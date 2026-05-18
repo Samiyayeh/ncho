@@ -373,7 +373,7 @@ export function ProviderDashboard() {
                         ))}
                       </tr>
                     ))
-                  ) : dpaLogs.filter(log => log.Provider && (log.Provider.last_name === user?.last_name || log.Provider.first_name === user?.first_name)).length === 0 ? (
+                  ) : dpaLogs.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="px-6 py-12 text-center text-gray-400">
                         <Shield className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -381,7 +381,7 @@ export function ProviderDashboard() {
                       </td>
                     </tr>
                   ) : (
-                    dpaLogs.filter(log => log.Provider && (log.Provider.last_name === user?.last_name || log.Provider.first_name === user?.first_name)).map((log) => (
+                    dpaLogs.map((log) => (
                       <tr key={log.log_id} className="hover:bg-gray-50/60 transition">
                         <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap font-mono">
                           {formatTimestamp(log.timestamp)}

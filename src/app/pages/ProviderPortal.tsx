@@ -1,4 +1,4 @@
-import { QrCode, Search, AlertCircle, X } from "lucide-react";
+import { QrCode, Search, AlertCircle, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import { ProviderLayout } from "../components/ProviderLayout";
@@ -13,21 +13,38 @@ export function ProviderPortal() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanError, setScanError] = useState("");
   const [lookupError, setLookupError] = useState("");
+  
+  // Pagination & Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // Debounced directory fetch
   useEffect(() => {
-    const fetchRecent = async () => {
+    const fetchDirectory = async () => {
+      setLoading(true);
       try {
-        const data = await api.get('/provider/directory');
-        // Just take the first 5 for "Recent" quick access
-        setRecentPatients(data.slice(0, 5));
+        const res = await api.get(`/provider/directory?page=${currentPage}&limit=5&search=${encodeURIComponent(searchQuery)}`);
+        setRecentPatients(res.data);
+        setTotalPages(res.totalPages);
       } catch (error) {
         console.error("Failed to fetch directory", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchRecent();
-  }, []);
+
+    const timer = setTimeout(() => {
+      fetchDirectory();
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [currentPage, searchQuery]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on new search
+  };
 
   const handleManualLookup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,33 +155,72 @@ export function ProviderPortal() {
 
         {/* Quick Access List */}
         <div className="bg-white rounded-xl shadow-md p-8">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Quick Access - Recent Patients</h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h3 className="text-xl font-bold text-gray-900">Quick Access Directory</h3>
+            <div className="relative w-full sm:w-72">
+              <input
+                type="text"
+                placeholder="Search by name or ID..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm font-medium"
+              />
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+            </div>
+          </div>
+          
           <div className="space-y-4">
-            {loading ? (
-              <p className="text-gray-500 text-center py-4">Loading directory...</p>
+            {loading && recentPatients.length === 0 ? (
+              <p className="text-gray-500 text-center py-8 font-medium">Loading directory...</p>
             ) : recentPatients.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No patients registered yet.</p>
+              <div className="text-center py-8">
+                <Search className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">No patients found matching your search.</p>
+              </div>
             ) : (
               recentPatients.map((patient) => (
                 <Link
                   key={patient.patient_id}
                   to={`/provider/clinical/${patient.patient_id}`}
-                  className="block p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition"
+                  className="block p-4 border-2 border-gray-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition shadow-sm hover:shadow-md"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <p className="font-bold text-gray-900">{patient.first_name} {patient.last_name}</p>
-                      <p className="text-sm text-gray-600">Patient ID: {patient.patient_id}</p>
+                      <p className="font-bold text-gray-900 text-lg">{patient.first_name} {patient.last_name}</p>
+                      <p className="text-xs font-mono text-gray-500 mt-1">{patient.patient_id}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-600">Contact: {patient.contact_number || 'N/A'}</p>
-                      <p className="text-sm font-bold text-blue-600">{patient.email}</p>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{patient.contact_number || 'No contact'}</p>
+                      <p className="text-sm font-bold text-blue-600 truncate max-w-[120px] sm:max-w-none">{patient.email}</p>
                     </div>
                   </div>
                 </Link>
               ))
             )}
           </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600 disabled:opacity-50 disabled:hover:bg-gray-50 disabled:hover:text-gray-600 transition"
+              >
+                <ChevronLeft className="w-4 h-4" /> Previous
+              </button>
+              <span className="text-sm font-bold text-gray-400">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-600 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-600 disabled:opacity-50 disabled:hover:bg-gray-50 disabled:hover:text-gray-600 transition"
+              >
+                Next <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Privacy Notice */}
